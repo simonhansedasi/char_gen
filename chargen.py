@@ -20,7 +20,7 @@ def main():
     print(recommended_species)
     print(dead_farmers)
     updated_stats = g.apply_species_bonus(stats, recommended_species)
-    print(updated_stats)
+    # print(updated_stats)
     
 if __name__ == "__main__":
     main()
