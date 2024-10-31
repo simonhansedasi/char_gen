@@ -2,6 +2,7 @@ import random
 import sqlite3
 
 stats = ['STR','DEX','CON','INT','WIS','CHA']
+
 stat_id_mapping = {
     'STR': 1,
     'DEX': 2,
@@ -12,9 +13,14 @@ stat_id_mapping = {
 }
 
 stat_id_mapping_inv = {v: k for k, v in stat_id_mapping.items()}
+
+priority_order = {'DEX': 1, 'INT': 2, 'WIS': 3, 'STR': 4, 'CHA': 5, 'CON': 6}
+
+
+
 def roll_3d6():
     rolls = []
-    for i in range(3):
+    for i in range(4):
         rolls.append(random.randint(1,6))
     
     rolls.sort()        
@@ -36,19 +42,6 @@ def roll_stats():
             break
         roll_count += 1
     return rolled_stats, roll_count
-
-
-
-
-
-
-
-
-
-import sqlite3
-
-# Define the priority mapping
-priority_order = {'DEX': 1, 'INT': 2, 'WIS': 3, 'STR': 4, 'CHA': 5, 'CON': 6}
 
 def recommend_species(stats):
     rolled_values = []
@@ -104,33 +97,10 @@ def recommend_species(stats):
     for (species_name,) in flexible_results:  # Unpack here as well
         if species_name not in recommendations:
             recommendations.append(species_name)
-
-    species_probabilities = {
-        'Human': 0.15,      # Reduced from 0.25
-        'Dwarf': 0.15,
-        'Elf': 0.10,        # Increased from 0.07
-        'Halfling': 0.12,
-        'Dragonborn': 0.08, # Increased from 0.05
-        'Gnome': 0.1,
-        'Half-Elf': 0.10,   # Reduced from 0.16
-        'Half-Orc': 0.05,
-        'Tiefling': 0.05,
-    }
-    
-    # Filter recommendations based on probabilities
-    weighted_recommendations = [(species, species_probabilities.get(species, 0)) for species in recommendations]
-
-    # Select a species based on weighted probabilities
-    species_names, probabilities = zip(*weighted_recommendations) if weighted_recommendations else ([], [])
-    
-    if probabilities:
-        selected_species = random.choices(species_names, weights=probabilities, k=1)[0]
-    else:
-        selected_species = None
     
     conn.close()
-    
-    return selected_species
+    return random.choice(recommendations)
+    # return selected_species
 
     
     
