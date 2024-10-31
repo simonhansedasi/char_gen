@@ -126,7 +126,7 @@ def recommend_species(stats):
         
         # Lower weights for Humans (8) and Half-Elves (12)
         if species_id in [8, 12]:  
-            weight = feats_length * 0.15
+            weight = feats_length * 0.01
         else:
             weight = feats_length
         
@@ -146,7 +146,7 @@ def recommend_species(stats):
     if chosen_species_id is None:
         raise ValueError(f"No feats found for the selected species: {chosen_species}")
 
-    return chosen_species, species_feats[chosen_species_id]
+    return [chosen_species], species_feats[chosen_species_id]
 
 
 
@@ -161,7 +161,6 @@ def apply_species_bonus(stats, recommended_species):
     stat_priority = ['DEX', 'INT', 'WIS', 'STR', 'CHA', 'CON']
 
     for species_name in recommended_species:
-
         query_species_bonus = '''
             SELECT SB.stat_id, SB.bonus_value 
             FROM SpeciesBonus SB
@@ -171,25 +170,21 @@ def apply_species_bonus(stats, recommended_species):
         cursor.execute(query_species_bonus, (species_name,))
         species_bonuses = cursor.fetchall()
 
-        updated_stats = stats.copy()  
+        updated_stats = stats.copy()
 
         for stat_id, bonus_value in species_bonuses:
             stat_name = stat_id_mapping_inv[stat_id]
-            updated_stats[stat_name] += bonus_value  
-
-        updated_stat_arrays.append({species_name: updated_stats})
+            updated_stats[stat_name] += bonus_value
 
         if species_name in ['Human', 'Half-Elf']:
-
-            # Create a list of rolled values with priority order
             rolled_values = [(stat, updated_stats[stat]) for stat in stats.keys()]
             rolled_values.sort(key=lambda x: (x[1], stat_priority.index(x[0])), reverse=True)
 
             if species_name == 'Half-Elf':
-                rolled_values = [x for x in rolled_values if x[0] != 'CHA']  
+                rolled_values = [x for x in rolled_values if x[0] != 'CHA']
                 highest_two_stats = rolled_values[:2]
             else:
-                highest_two_stats = rolled_values[:2] 
+                highest_two_stats = rolled_values[:2]
 
             highest_two_ids = [stat_id_mapping[highest_two_stats[0][0]], stat_id_mapping[highest_two_stats[1][0]]]
 
@@ -208,12 +203,10 @@ def apply_species_bonus(stats, recommended_species):
                 first_stat_name = stat_id_mapping_inv[first_stat_id]
                 second_stat_name = stat_id_mapping_inv[second_stat_id]
 
-                updated_stats[first_stat_name] += 1  
-                updated_stats[second_stat_name] += 1  
+                updated_stats[first_stat_name] += 1
+                updated_stats[second_stat_name] += 1
+
+        updated_stat_arrays.append({species_name: updated_stats})
+
     conn.close()
-    
-
-    return updated_stat_arrays 
-
-
-
+    return updated_stat_arrays

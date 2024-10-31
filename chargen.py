@@ -17,12 +17,9 @@ def main():
         recommended_species, feats = g.recommend_species(stats)
         dead_farmers += attempts
         
-    print(recommended_species)
-    # print(feats)
-    print(dead_farmers)
     updated_stats = g.apply_species_bonus(stats, recommended_species)
     print(updated_stats)
-    # print(updated_stats)
+    print(dead_farmers)
     
 if __name__ == "__main__":
     main()
