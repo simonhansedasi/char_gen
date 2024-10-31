@@ -14,12 +14,14 @@ def main():
     while recommended_species == None:
         stats, attempts = g.roll_stats()
 
-        recommended_species = g.recommend_species(stats)
+        recommended_species, feats = g.recommend_species(stats)
         dead_farmers += attempts
         
     print(recommended_species)
+    # print(feats)
     print(dead_farmers)
     updated_stats = g.apply_species_bonus(stats, recommended_species)
+    print(updated_stats)
     # print(updated_stats)
     
 if __name__ == "__main__":
