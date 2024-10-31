@@ -45,26 +45,25 @@ def roll_stats():
 
 def recommend_species(stats):
     rolled_values = []
-    
-    # Convert stats to (stat_id, value) pairs
+    recommendations = {}  # Dictionary to hold species_id as key and species_name as value
+    species_feats = {}  # Dictionary to hold species_id and their feats
+
     for stat, value in stats.items():
         rolled_values.append((stat_id_mapping[stat], value))
 
     # Sort by value, and then by priority to handle ties
     rolled_values.sort(key=lambda x: (x[1], priority_order[stat_id_mapping_inv[x[0]]]), reverse=True)
-    
+
     # Select the highest two stat ids
-    highest_two_ids = [rolled_values[0][0], rolled_values[1][0]]  
+    highest_two_ids = [rolled_values[0][0], rolled_values[1][0]]
     placeholder = ', '.join(['?'] * len(highest_two_ids))
-    
-    recommendations = []
-    
+
     conn = sqlite3.connect('dnd.db')
     cursor = conn.cursor()
-    
+
     # Query to recommend species based on the highest two stat ids
     query = f'''
-        SELECT S.name 
+        SELECT S.id, S.name 
         FROM Species S
         JOIN SpeciesBonus SB ON S.id = SB.species_id
         WHERE SB.stat_id IN ({placeholder})
@@ -74,33 +73,82 @@ def recommend_species(stats):
     '''
     cursor.execute(query, highest_two_ids)
 
-    for species_name, in cursor.fetchall():  # Unpack the tuple
-        if species_name not in recommendations:
-            recommendations.append(species_name)
+    # Populate recommendations with species ID and name
+    for species_id, species_name in cursor.fetchall():
+        recommendations[species_id] = species_name
+        species_feats[species_id] = []  # Initialize an empty list to store feats
 
     # Fetch flexible bonuses for Human and Half-Elf
     flexible_query = '''
-        SELECT S.name 
+        SELECT S.id, S.name 
         FROM Species S
         JOIN Custom_Bonuses CB ON S.id = CB.species_id
         WHERE CB.first_stat_id IN (?, ?) 
         AND CB.second_stat_id IN (?, ?)
         AND S.id IN (8, 12)  -- Assuming 8 is Human and 12 is Half-Elf
     '''
-
-    params = highest_two_ids + highest_two_ids  
+    params = highest_two_ids + highest_two_ids
     cursor.execute(flexible_query, params)
 
-    flexible_results = cursor.fetchall()
+    # Populate recommendations with flexible species
+    for species_id, species_name in cursor.fetchall():
+        if species_id not in recommendations:  # Check if species ID is not already added
+            recommendations[species_id] = species_name
+            species_feats[species_id] = []  # Initialize list for feats
 
-    # Process flexible species
-    for (species_name,) in flexible_results:  # Unpack here as well
-        if species_name not in recommendations:
-            recommendations.append(species_name)
-    
+
+    # Print species feats for debugging
+
+    # Query for species feats based on recommended species IDs
+    species_ids = list(species_feats.keys())
+    if species_ids:
+        placeholder = ', '.join(['?'] * len(species_ids))
+        feats_query = f'''
+            SELECT SF.species_id, F.feat_name
+            FROM SpeciesFeats SF
+            JOIN StartFeats F ON SF.feat_id = F.feat_id
+            WHERE SF.species_id IN ({placeholder})
+        '''
+        cursor.execute(feats_query, species_ids)
+
+        # Populate the feats for each species
+        for species_id, feat_name in cursor.fetchall():
+            species_feats[species_id].append(feat_name)
+
     conn.close()
-    return random.choice(recommendations)
-    # return selected_species
+
+   # Calculate weights for each species based on feats length and apply lower weights for Humans and Half-Elves
+    weights = []
+    species_list = []
+    
+    for species_id, species_name in recommendations.items():
+        feats_length = len(species_feats[species_id])
+        
+        # Lower weights for Humans (8) and Half-Elves (12)
+        if species_id in [8, 12]:  
+            weight = feats_length * 0.15
+        else:
+            weight = feats_length
+        
+        weights.append(weight)
+        species_list.append(species_name)
+
+    # Choose a species based on weights
+    if not species_list:
+        raise ValueError("No species recommendations available.")
+    
+    chosen_species = random.choices(species_list, weights=weights, k=1)[0]
+
+    # Get the chosen species ID
+    chosen_species_id = next((id for id, name in recommendations.items() if name == chosen_species), None)
+
+    # Ensure the chosen species ID exists in the dictionary
+    if chosen_species_id is None:
+        raise ValueError(f"No feats found for the selected species: {chosen_species}")
+
+    return chosen_species, species_feats[chosen_species_id]
+
+
 
     
     
