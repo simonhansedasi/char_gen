@@ -43,170 +43,322 @@ def roll_stats():
         roll_count += 1
     return rolled_stats, roll_count
 
-def recommend_species(stats):
-    rolled_values = []
-    recommendations = {}  # Dictionary to hold species_id as key and species_name as value
-    species_feats = {}  # Dictionary to hold species_id and their feats
 
-    for stat, value in stats.items():
-        rolled_values.append((stat_id_mapping[stat], value))
 
-    # Sort by value, and then by priority to handle ties
-    rolled_values.sort(key=lambda x: (x[1], priority_order[stat_id_mapping_inv[x[0]]]), reverse=True)
+def get_stat_combinations(stats):
+    highest_two = sorted(stats.items(), key=lambda x: -x[1])[:2]
+    lowest_two = sorted(stats.items(), key=lambda x: x[1])[:2]
+    highest_lowest = [
+        (highest_two[0][0], highest_two[0][1]), 
+        (lowest_two[0][0], lowest_two[0][1])    
+    ] 
+    return {        
+        'l2': lowest_two,
+        'hl': highest_lowest,
+        'h2': highest_two
+    }
 
-    # Select the highest two stat ids
-    highest_two_ids = [rolled_values[0][0], rolled_values[1][0]]
-    placeholder = ', '.join(['?'] * len(highest_two_ids))
 
+
+
+
+def get_species_name(species_id):
+    conn = sqlite3.connect('dnd.db')
+    cursor = conn.cursor()
+    
+    query = '''
+        SELECT name
+        FROM Species
+        WHERE id = ?
+    '''
+    
+    cursor.execute(query, (species_id,))
+    result = cursor.fetchone()
+    
+    conn.close()
+    
+    return result[0]
+
+def get_species_id(species_name):
+    conn = sqlite3.connect('dnd.db')
+    cursor = conn.cursor()
+    
+    query = '''
+        SELECT id
+        FROM Species
+        WHERE name = ?
+    '''
+    
+    cursor.execute(query, (species_name,))
+    result = cursor.fetchone()
+    
+    conn.close()
+    
+    return result[0]
+
+
+def get_species_stats(species_id):
+    query_species_bonus = '''
+        SELECT SB.stat_id, SB.bonus_value 
+        FROM SpeciesBonus SB
+        JOIN Species S ON SB.species_id = S.id
+        WHERE S.name = ?
+    '''
+    cursor.execute(query_species_bonus, (species_id,))
+    species_bonuses = cursor.fetchall()
+
+
+
+
+
+
+
+
+
+
+
+
+
+def query_species(stat_id_pairs):
     conn = sqlite3.connect('dnd.db')
     cursor = conn.cursor()
 
-    # Query to recommend species based on the highest two stat ids
-    query = f'''
-        SELECT S.id, S.name 
-        FROM Species S
-        JOIN SpeciesBonus SB ON S.id = SB.species_id
-        WHERE SB.stat_id IN ({placeholder})
-        AND SB.bonus_value > 0
-        GROUP BY S.id
-        HAVING COUNT(SB.stat_id) = {len(highest_two_ids)}
-    '''
-    cursor.execute(query, highest_two_ids)
+    union_queries = []
+    params = []
 
-    # Populate recommendations with species ID and name
-    for species_id, species_name in cursor.fetchall():
-        recommendations[species_id] = species_name
-        species_feats[species_id] = []  # Initialize an empty list to store feats
+    for key in (stat_id_pairs.keys()):
 
-    # Fetch flexible bonuses for Human and Half-Elf
-    flexible_query = '''
-        SELECT S.id, S.name 
-        FROM Species S
-        JOIN Custom_Bonuses CB ON S.id = CB.species_id
-        WHERE CB.first_stat_id IN (?, ?) 
-        AND CB.second_stat_id IN (?, ?)
-        AND S.id IN (8, 12)  -- Assuming 8 is Human and 12 is Half-Elf
-    '''
-    params = highest_two_ids + highest_two_ids
-    cursor.execute(flexible_query, params)
+        stat_id_1 = stat_id_pairs[key][0]
+        stat_id_2 = stat_id_pairs[key][1]
 
-    # Populate recommendations with flexible species
-    for species_id, species_name in cursor.fetchall():
-        if species_id not in recommendations:  # Check if species ID is not already added
-            recommendations[species_id] = species_name
-            species_feats[species_id] = []  # Initialize list for feats
+        union_queries.append(f'''
+            SELECT S.id, S.name, {key} as pair_index
+            FROM Species S
+            JOIN SpeciesBonus SB ON S.id = SB.species_id
+            WHERE SB.stat_id IN (?, ?)
+            GROUP BY S.id
+            HAVING COUNT(DISTINCT SB.stat_id) = 2
+        ''')
+        
+        # Add parameters for the current pair
+        params.extend([stat_id_1, stat_id_2])
+
+    complete_query = ' UNION ALL '.join(union_queries)
+
+    cursor.execute(complete_query, params)
+    results = cursor.fetchall()
+
+    species_dict = {i: [] for i in range(len(stat_id_pairs))}
+
+    for species_id, species_name, pair_index in results:
+        species_dict[pair_index].append(species_id)
+    conn.close()
+    return species_dict
 
 
-    # Print species feats for debugging
 
-    # Query for species feats based on recommended species IDs
-    species_ids = list(species_feats.keys())
-    if species_ids:
-        placeholder = ', '.join(['?'] * len(species_ids))
-        feats_query = f'''
-            SELECT SF.species_id, F.feat_name
-            FROM SpeciesFeats SF
-            JOIN StartFeats F ON SF.feat_id = F.feat_id
-            WHERE SF.species_id IN ({placeholder})
-        '''
-        cursor.execute(feats_query, species_ids)
 
-        # Populate the feats for each species
-        for species_id, feat_name in cursor.fetchall():
-            species_feats[species_id].append(feat_name)
+
+
+
+
+
+
+
+def query_flexible_species(stat_id_pairs):
+    conn = sqlite3.connect('dnd.db')
+    cursor = conn.cursor()
+
+    queries = []
+    params = []
+
+    for key in (stat_id_pairs.keys()):
+        stat_id_1 = stat_id_pairs[key][0]
+        stat_id_2 = stat_id_pairs[key][1]
+
+        queries.append(f'''
+            SELECT S.id, S.name, {key} as pair_index
+            FROM Species S
+            JOIN Custom_Bonuses CB ON S.id = CB.species_id
+            WHERE (CB.first_stat_id = ? AND CB.second_stat_id = ?) 
+               OR (CB.first_stat_id = ? AND CB.second_stat_id = ?)
+            AND S.id IN (8, 12)
+        ''')
+
+        params.extend([stat_id_1, stat_id_2, stat_id_2, stat_id_1])  # Include both orders
+
+    results = []
+    for n, query in enumerate(queries):
+        cursor.execute(query, params[n * 4:n * 4 + 4])  # Adjusted to retrieve 4 params per query
+        results.extend(cursor.fetchall())  # Flatten results
+
+    
+    species_dict = {i: [] for i in range(len(stat_id_pairs))}
+    for species_id, species_name, pair_index in results:
+        species_dict[pair_index].append(species_id)
 
     conn.close()
-
-   # Calculate weights for each species based on feats length and apply lower weights for Humans and Half-Elves
-    weights = []
-    species_list = []
-    
-    for species_id, species_name in recommendations.items():
-        feats_length = len(species_feats[species_id])
-        
-        # Lower weights for Humans (8) and Half-Elves (12)
-        if species_id in [8, 12]:  
-            weight = feats_length * 0.01
-        else:
-            weight = feats_length
-        
-        weights.append(weight)
-        species_list.append(species_name)
-
-    # Choose a species based on weights
-    if not species_list:
-        raise ValueError("No species recommendations available.")
-    
-    chosen_species = random.choices(species_list, weights=weights, k=1)[0]
-
-    # Get the chosen species ID
-    chosen_species_id = next((id for id, name in recommendations.items() if name == chosen_species), None)
-
-    # Ensure the chosen species ID exists in the dictionary
-    if chosen_species_id is None:
-        raise ValueError(f"No feats found for the selected species: {chosen_species}")
-
-    return [chosen_species], species_feats[chosen_species_id]
+    return species_dict
 
 
 
-    
-    
-    
-def apply_species_bonus(stats, recommended_species):
-    updated_stat_arrays = []
+
+def query_species_feats(species_id):
     conn = sqlite3.connect('dnd.db')
     cursor = conn.cursor()
+    
+    feats_query = '''
+        SELECT SF.species_id, S.name, F.feat_name, F.feat_weight
+        FROM SpeciesFeats SF
+        JOIN StartFeats F ON SF.feat_id = F.feat_id
+        JOIN Species S ON SF.species_id = S.id
+        WHERE SF.species_id = ?
+    '''
+    
+    cursor.execute(feats_query, (species_id,))  # Single ID as a tuple
+    results = cursor.fetchall()
+    conn.close()
+    return results
 
+    
+
+
+
+
+
+
+
+def recommend_species(stats):
+    stat_combos = get_stat_combinations(stats)
+    stat_names = []
+    
+    for key in stat_combos.keys():
+        stat_names.append([stat_combos[key][0][0], stat_combos[key][1][0]])
+        
+        
+    
+    stat_ids = {}
+    
+    for pair in stat_names:
+        stat_ids[len(stat_ids)] = [stat_id_mapping[pair[0]],stat_id_mapping[pair[1]] ]
+        
+    species = query_species(stat_ids)
+    flex_species = query_flexible_species(stat_ids)
+
+    
+    all_species = {}
+    max_length = max(len(species), len(flex_species))
+
+    # Merge the two dictionaries
+    for i in range(max_length):
+        all_species[i] = []
+        if i in species:
+            all_species[i].extend(species[i])
+        if i in flex_species:
+            all_species[i].extend(flex_species[i])
+
+    
+    
+    species_weights = {}
+    
+    for key in all_species.keys():
+        for species_index in all_species[key]:
+            if species_index not in species_weights:
+                species_weights[species_index] = key
+            else:
+                species_weights[species_index] += key / 2
+    for key in species_weights:
+        feat_weights = query_species_feats(key)
+        for item in feat_weights:
+            species_weights[key] += item[3]
+
+    # print(species_weights)
+    
+    species = list(species_weights.keys())
+    weights = list(species_weights.values())
+
+    chosen_species = random.choices(species, weights=weights, k=1)[0]
+
+#     chosen_species = max(species_weights, key=species_weights.get)
+
+    recommended_species = get_species_name(chosen_species)
+    
+    
+    # print(recommended_species)
+    
+    return recommended_species
+
+
+
+
+
+def apply_species_bonus(stats, recommended_species):
+    species_id = get_species_id(recommended_species)
+    
+    species_stat_bonus = get_species_stats(species_id)
+    print(species_stat_bonus)
+
+    
+    
+    
+    
+    
+    
+    
+    
     stat_priority = ['DEX', 'INT', 'WIS', 'STR', 'CHA', 'CON']
 
-    for species_name in recommended_species:
-        query_species_bonus = '''
-            SELECT SB.stat_id, SB.bonus_value 
-            FROM SpeciesBonus SB
-            JOIN Species S ON SB.species_id = S.id
+    # Query for species-specific bonuses
+    query_species_bonus = '''
+        SELECT SB.stat_id, SB.bonus_value 
+        FROM SpeciesBonus SB
+        JOIN Species S ON SB.species_id = S.id
+        WHERE S.name = ?
+    '''
+    cursor.execute(query_species_bonus, (recommended_species,))
+    species_bonuses = cursor.fetchall()
+
+    # Copy stats to avoid modifying the original
+    updated_stats = stats.copy()
+
+    # Apply the bonuses
+    for stat_id, bonus_value in species_bonuses:
+        stat_name = stat_id_mapping_inv[stat_id]
+        updated_stats[stat_name] += bonus_value
+
+    # Additional logic for custom bonuses for Humans and Half-Elves
+    if recommended_species in ['Human', 'Half-Elf']:
+        rolled_values = [(stat, updated_stats[stat]) for stat in stats.keys()]
+        rolled_values.sort(key=lambda x: (x[1], stat_priority.index(x[0])), reverse=True)
+
+        if recommended_species == 'Half-Elf':
+            rolled_values = [x for x in rolled_values if x[0] != 'CHA']
+            highest_two_stats = rolled_values[:2]
+        else:
+            highest_two_stats = rolled_values[:2]
+
+        highest_two_ids = [stat_id_mapping[highest_two_stats[0][0]], stat_id_mapping[highest_two_stats[1][0]]]
+
+        query_custom_bonus = '''
+            SELECT CB.first_stat_id, CB.second_stat_id 
+            FROM Custom_Bonuses CB
+            JOIN Species S ON CB.species_id = S.id
             WHERE S.name = ?
+            AND CB.first_stat_id IN (?, ?)
+            AND CB.second_stat_id IN (?, ?)
         '''
-        cursor.execute(query_species_bonus, (species_name,))
-        species_bonuses = cursor.fetchall()
+        cursor.execute(query_custom_bonus, (recommended_species, highest_two_ids[0], highest_two_ids[1], highest_two_ids[0], highest_two_ids[1]))
+        custom_bonuses = cursor.fetchall()
 
-        updated_stats = stats.copy()
+        for first_stat_id, second_stat_id in custom_bonuses:
+            first_stat_name = stat_id_mapping_inv[first_stat_id]
+            second_stat_name = stat_id_mapping_inv[second_stat_id]
 
-        for stat_id, bonus_value in species_bonuses:
-            stat_name = stat_id_mapping_inv[stat_id]
-            updated_stats[stat_name] += bonus_value
+            updated_stats[first_stat_name] += 1
+            updated_stats[second_stat_name] += 1
 
-        if species_name in ['Human', 'Half-Elf']:
-            rolled_values = [(stat, updated_stats[stat]) for stat in stats.keys()]
-            rolled_values.sort(key=lambda x: (x[1], stat_priority.index(x[0])), reverse=True)
-
-            if species_name == 'Half-Elf':
-                rolled_values = [x for x in rolled_values if x[0] != 'CHA']
-                highest_two_stats = rolled_values[:2]
-            else:
-                highest_two_stats = rolled_values[:2]
-
-            highest_two_ids = [stat_id_mapping[highest_two_stats[0][0]], stat_id_mapping[highest_two_stats[1][0]]]
-
-            query_custom_bonus = '''
-                SELECT CB.first_stat_id, CB.second_stat_id 
-                FROM Custom_Bonuses CB
-                JOIN Species S ON CB.species_id = S.id
-                WHERE S.name = ?
-                AND CB.first_stat_id IN (?, ?)
-                AND CB.second_stat_id IN (?, ?)
-            '''
-            cursor.execute(query_custom_bonus, (species_name, highest_two_ids[0], highest_two_ids[1], highest_two_ids[0], highest_two_ids[1]))
-            custom_bonuses = cursor.fetchall()
-
-            for first_stat_id, second_stat_id in custom_bonuses:
-                first_stat_name = stat_id_mapping_inv[first_stat_id]
-                second_stat_name = stat_id_mapping_inv[second_stat_id]
-
-                updated_stats[first_stat_name] += 1
-                updated_stats[second_stat_name] += 1
-
-        updated_stat_arrays.append({species_name: updated_stats})
+    # Store the updated stats
+    updated_stat_array[recommended_species] = updated_stats
 
     conn.close()
-    return updated_stat_arrays
+    return updated_stat_array
