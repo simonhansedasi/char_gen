@@ -2,24 +2,59 @@ import gen as g
 
 
 def main():
-    stats, attempts = g.roll_stats()
-    dead_farmers = attempts
-    
-    
+    dead_farmers = 0
     
     
     
     recommended_species = None
-
-    while recommended_species == None:
-        stats, attempts = g.roll_stats()
-
-        recommended_species, feats = g.recommend_species(stats)
-        dead_farmers += attempts
-        
-    updated_stats = g.apply_species_bonus(stats, recommended_species)
-    print(updated_stats)
-    print(dead_farmers)
     
+    chosen_class = None
+    
+    background = None
+
+    while not (recommended_species and chosen_class and background):
+        
+        stats, attempts = g.roll_stats()
+        
+        dead_farmers += attempts
+
+        recommended_species = g.recommend_species(stats)
+        
+        
+        updated_stats = g.apply_species_bonus(stats, recommended_species)
+        optimal_stats = g.sort_stats(updated_stats)
+    
+        chosen_class = g.select_class(optimal_stats)
+    
+        background = g.pick_background(optimal_stats)
+    
+
+    
+    # print(background)
+    
+    printed_stats = {}
+    for new_key, old_key in zip(g.stats, updated_stats.keys()):
+        printed_stats[new_key] = updated_stats[old_key]
+    
+    
+
+    print(printed_stats)
+    print(recommended_species)
+    print(background)
+    print(chosen_class)
+    # print(f'{dead_farmers} dead farmers')
+    print('')
+
+    backstory = g.generate_background(
+        recommended_species,
+        chosen_class,
+        background,
+        updated_stats,
+        dead_farmers
+    )
+    
+    print(backstory)
+    
+    # print(updated_stats)
 if __name__ == "__main__":
     main()
