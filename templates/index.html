@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>D&D Character Generator</title>
+</head>
+<body>
+    <h1>D&D Character Generator</h1>
+    <form method="POST">
+        <button type="submit">Generate Character</button>
+    </form>
+
+    {% if species %}
+    <h2>Generated Character</h2>
+    <p><strong>Species:</strong> {{ species }}</p>
+    <p><strong>Class:</strong> {{ character_class }}</p>
+    <p><strong>Background:</strong> {{ background }}</p>
+    <p><strong>Stats:</strong> {{ stats }}</p>
+    <p><strong>Character Background:</strong> {{ character_background }}</p>
+    {% endif %}
+</body>
+</html>
+
