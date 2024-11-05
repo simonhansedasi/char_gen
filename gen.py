@@ -1,6 +1,15 @@
 import random
 import sqlite3
 import openai
+
+import os
+from dotenv import load_dotenv
+
+
+
+
+
+
 stats = ['STR','DEX','CON','INT','WIS','CHA']
 
 
@@ -449,12 +458,16 @@ def generate_background(
     updated_stats,
     dead_farmers
 ):
+        # Load environment variables
+    load_dotenv()
+
+    # Get the API key from environment variables
+    api_key = os.getenv("API_KEY")
     
-    
-    with open('key.txt', 'r') as file:
-        api_key = file.read().strip()
+#     with open('key.txt', 'r') as file:
+#         api_key = file.read().strip()
         
-    openai.api_key = api_key
+#     openai.api_key = api_key
 
     prompt = (
         f'Generate a D&D character background for a {chosen_class}.'

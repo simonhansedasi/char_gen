@@ -1,10 +1,11 @@
 from flask import Flask, render_template, request
 import gen as g  # Import your character generation code
 
-import os
-from dotenv import load_dotenv
+# import os
+# from dotenv import load_dotenv
 
-load_dotenv()  # Load environment variables from .env file
+# load_dotenv()  # Load environment variables from .env file
+# api_key = os.getenv("API_KEY")
 
 app = Flask(__name__)
 
