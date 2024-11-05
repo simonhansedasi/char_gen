@@ -27,6 +27,10 @@
 </head>
 <body>
     <h1>Why don't you play a...</h1>
+    <form method="POST">
+        <button type="submit">Generate Character</button>
+    </form>
+
     {% if species %}
     <div class="character-info">
         <p><strong>Species:</strong> {{ species }}</p>
