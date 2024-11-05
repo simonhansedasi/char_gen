@@ -1,6 +1,11 @@
 from flask import Flask, render_template, request
 import gen as g  # Import your character generation code
 
+import os
+from dotenv import load_dotenv
+
+load_dotenv()  # Load environment variables from .env file
+
 app = Flask(__name__)
 
 @app.route('/', methods=['GET', 'POST'])
