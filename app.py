@@ -1,5 +1,8 @@
 from flask import Flask, render_template, request
 import gen as g  # Import your character generation code
+from flask_cors import CORS
+
+app = Flask(__name__)
 
 # import os
 # from dotenv import load_dotenv
@@ -8,6 +11,7 @@ import gen as g  # Import your character generation code
 # api_key = os.getenv("API_KEY")
 
 app = Flask(__name__)
+CORS(app)
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
