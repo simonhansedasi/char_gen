@@ -2,21 +2,43 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>D&D Character Generator</title>
+    <title>Charactermancer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 20px; /* Optional: Adds some margin to the body */
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .character-info {
+            margin-bottom: 20px;
+        }
+        .background-section {
+            margin-top: 20px;
+            /* Removed background-color, padding, border */
+        }
+        p {
+            margin: 0; /* Remove default margin for paragraphs */
+            padding: 0; /* Remove padding for uniformity */
+        }
+    </style>
 </head>
 <body>
-    <h1>D&D Character Generator</h1>
-    <form method="POST">
-        <button type="submit">Generate Character</button>
-    </form>
-
+    <h1>Why don't you play a...</h1>
     {% if species %}
-    <h2>Generated Character</h2>
-    <p><strong>Species:</strong> {{ species }}</p>
-    <p><strong>Class:</strong> {{ character_class }}</p>
-    <p><strong>Background:</strong> {{ background }}</p>
-    <p><strong>Stats:</strong> {{ stats }}</p>
-    <p><strong>Character Background:</strong> {{ character_background }}</p>
+    <div class="character-info">
+        <p><strong>Species:</strong> {{ species }}</p>
+        <p><strong>Class:</strong> {{ character_class }}</p>
+        <p><strong>Background:</strong> {{ background }}</p>
+        <p><strong>Stats:</strong> {{ stats }}</p>
+    </div>
+    
+    <div class="background-section">
+        <p><strong>Character Background:</strong></p>
+        <div>{{ character_background|safe }}</div>
+    </div>
     {% endif %}
 </body>
 </html>

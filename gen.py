@@ -463,26 +463,37 @@ def generate_background(
 
     # Get the API key from environment variables
     api_key = os.getenv("API_KEY")
-    
+    openai.api_key = api_key
 #     with open('key.txt', 'r') as file:
 #         api_key = file.read().strip()
         
 #     openai.api_key = api_key
 
     prompt = (
-        f'Generate a D&D character background for a {chosen_class}.'
+        # f'
+        f'Generate a D&D character background for a {chosen_class} and give them a name.'
         f'This {chosen_class} comes from a {background} background.'
         f'The stat array for this player is {updated_stats}.'
         f'Give them a personality trait based on their stat array.'
         # f'Pick an alignment at random also.'
         f'{dead_farmers} people died in this persons life before adventuring.'
-        f'Give the character a quirk and a name.'
+        f'Give the character a quirk.'
+        # f'Report a separate section for character history, trait, and quirk, formatted with <br>'
+        f'do not report the stat array'
     )
-    
     
     response = openai.ChatCompletion.create(
         model='gpt-3.5-turbo',
         messages=[{'role': 'user', 'content': prompt}]
     )
-    
-    return response['choices'][0]['message']['content']
+    print(response)
+    # Extract the content from the response
+    content = response['choices'][0]['message']['content']
+
+    # Split the content into sections (you can adjust the splitting based on your needs)
+    # sections = content.split("\n")  # Split by new lines
+
+    # Prepare formatted background
+    # formatted_background = "\n\n".join(section for section in sections if section.strip())
+
+    return content

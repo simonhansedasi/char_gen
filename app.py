@@ -38,6 +38,7 @@ def index():
         character_background = g.generate_background(
             recommended_species, chosen_class, background, updated_stats, dead_farmers
         )
+        character_background = character_background.replace('\n', '<br>')
 
         # Send data to HTML template to display
         return render_template(
