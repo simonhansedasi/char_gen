@@ -1,0 +1,3 @@
+Flask==x.x.x
+gunicorn==x.x.x
+
