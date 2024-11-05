@@ -462,7 +462,7 @@ def generate_background(
     load_dotenv()
 
     # Get the API key from environment variables
-    api_key = os.getenv("API_KEY")
+    api_key = os.getenv("OPENAI_API_KEY")
     openai.api_key = api_key
 #     with open('key.txt', 'r') as file:
 #         api_key = file.read().strip()
@@ -489,11 +489,4 @@ def generate_background(
     print(response)
     # Extract the content from the response
     content = response['choices'][0]['message']['content']
-
-    # Split the content into sections (you can adjust the splitting based on your needs)
-    # sections = content.split("\n")  # Split by new lines
-
-    # Prepare formatted background
-    # formatted_background = "\n\n".join(section for section in sections if section.strip())
-
     return content
