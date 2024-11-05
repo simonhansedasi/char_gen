@@ -3,7 +3,7 @@ import gen as g  # Import your character generation code
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": ["http://localhost:4000", "https://simonhansedasi.github.io"]}})  # Allow specific origins
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
