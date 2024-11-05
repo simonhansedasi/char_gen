@@ -6,10 +6,6 @@ import os
 from dotenv import load_dotenv
 
 
-
-
-
-
 stats = ['STR','DEX','CON','INT','WIS','CHA']
 
 
@@ -464,10 +460,10 @@ def generate_background(
     # Get the API key from environment variables
     api_key = os.getenv("OPENAI_API_KEY")
     openai.api_key = api_key
-#     with open('key.txt', 'r') as file:
-#         api_key = file.read().strip()
+    # with open('key.txt', 'r') as file:
+    #     api_key = file.read().strip()
         
-#     openai.api_key = api_key
+    openai.api_key = api_key
 
     prompt = (
         # f'
@@ -478,7 +474,6 @@ def generate_background(
         # f'Pick an alignment at random also.'
         f'{dead_farmers} people died in this persons life before adventuring.'
         f'Give the character a quirk.'
-        # f'Report a separate section for character history, trait, and quirk, formatted with <br>'
         f'do not report the stat array'
     )
     
@@ -486,7 +481,10 @@ def generate_background(
         model='gpt-3.5-turbo',
         messages=[{'role': 'user', 'content': prompt}]
     )
-    print(response)
+    # print(response)
     # Extract the content from the response
     content = response['choices'][0]['message']['content']
+    
+    print(content)
+    
     return content
