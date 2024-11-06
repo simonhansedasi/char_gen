@@ -22,10 +22,9 @@ def generate_character():
     background = None
     species = None
     chosen_class = None
-    
     dead_farmers = 0
 
-    # Main character generation without background
+    # Main character generation loop
     while not (species and chosen_class and background):
         stats, attempts = g.roll_stats()
         dead_farmers += attempts
@@ -35,34 +34,38 @@ def generate_character():
         background = g.pick_background(optimal_stats)
         chosen_class = g.select_class(optimal_stats)
 
-    # Respond with essential data first
     partial_response = jsonify({
         'stats': updated_stats,
         'species': species,
         'class': chosen_class,
-        'background': background,
-        'character_background': "Generating character background...",
+        'background': background,  
+        'dead_farmers': dead_farmers,
+        'backstory': "Generating character backstory...",  
     })
-    
-    
-    # Return this partial data while background is generated in the background
     return partial_response
-    # # If GET request, show empty form
-    # return render_template('index.html')
-    
 
+
+
+
+
+# Separate route to generate and fetch the background
 @app.route('/generate_background', methods=['POST'])
 def generate_background():
+    stats = request.json.get('stats')
     species = request.json.get('species')
     chosen_class = request.json.get('class')
-    stats = request.json.get('stats')
-    dead_farmers = request.json.get('dead_farmers')
     background = request.json.get('background')
+    dead_farmers = request.json.get('dead_farmers')
+    
+
 
     # Generate background based on character data
     character_background = g.generate_background(species, chosen_class, background, stats, dead_farmers)
     character_background = character_background.replace('\n', '<br>')
 
+    # Return the character background
     return jsonify({'character_background': character_background})
+
+
 if __name__ == '__main__':
     app.run(debug=True)
