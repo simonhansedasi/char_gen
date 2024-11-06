@@ -6,6 +6,10 @@ from collections import OrderedDict
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": ["http://localhost:4000", "https://simonhansedasi.github.io", "https://char-gen.onrender.com", "http://127.0.0.1:5000/"]}})
 # Allow specific origins
+@app.after_request
+def add_security_headers(response):
+    response.headers['Permissions-Policy'] = 'interest-cohort=()'  # Disable FLoC
+    return response
 
 @app.route('/generate_character', methods=['GET', 'POST'])
 def generate_character():
@@ -24,7 +28,7 @@ def generate_character():
         optimal_stats = g.sort_stats(updated_stats)
         chosen_class = g.select_class(optimal_stats)
         background = g.pick_background(optimal_stats)
-
+    
     # printed_stats = {new_key: updated_stats[old_key] for new_key, old_key in zip(g.stats, updated_stats.keys())}
     printed_stats = OrderedDict([
         ("STR", updated_stats[0]),
