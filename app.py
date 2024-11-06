@@ -26,14 +26,14 @@ def generate_character():
     dead_farmers = 0
 
     # Main character generation without background
-    while not (species and chosen_class):
+    while not (species and chosen_class and background):
         stats, attempts = g.roll_stats()
         dead_farmers += attempts
         species = g.recommend_species(stats)
         updated_stats = g.apply_species_bonus(stats, species)
         optimal_stats = g.sort_stats(updated_stats)
-        chosen_class = g.select_class(optimal_stats)
         background = g.pick_background(optimal_stats)
+        chosen_class = g.select_class(optimal_stats)
 
     # Respond with essential data first
     partial_response = jsonify({
@@ -43,7 +43,8 @@ def generate_character():
         'background': background,
         'character_background': "Generating character background...",
     })
-
+    
+    
     # Return this partial data while background is generated in the background
     return partial_response
     # # If GET request, show empty form
