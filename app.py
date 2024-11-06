@@ -4,12 +4,18 @@ from flask_cors import CORS
 from collections import OrderedDict
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": ["http://localhost:4000", "https://simonhansedasi.github.io", "https://char-gen.onrender.com", "http://127.0.0.1:5000/"]}})
+CORS(app, resources={r"/*": {"origins": ["http://localhost:4000", "https://simonhansedasi.github.io", "https://char-gen.onrender.com", "http://127.0.0.1:5000"]}})
 # Allow specific origins
 @app.after_request
 def add_security_headers(response):
     response.headers['Permissions-Policy'] = 'interest-cohort=()'  # Disable FLoC
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'  # Enforce HTTPS
+    response.headers['Content-Security-Policy'] = "default-src 'self';"  # Add CSP
+    response.headers['X-Frame-Options'] = 'DENY'  # Prevent iframe embedding
+    response.headers['X-XSS-Protection'] = '1; mode=block'  # Prevent cross-site scripting
+    response.headers['X-Content-Type-Options'] = 'nosniff'  # Prevent MIME-type sniffing
     return response
+
 
 @app.route('/generate_character', methods=['POST'])
 def generate_character():
@@ -20,7 +26,7 @@ def generate_character():
     dead_farmers = 0
 
     # Main character generation without background
-    while not (species and chosen_class and background):
+    while not (species and chosen_class):
         stats, attempts = g.roll_stats()
         dead_farmers += attempts
         species = g.recommend_species(stats)
