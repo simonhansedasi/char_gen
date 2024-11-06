@@ -440,11 +440,11 @@ def pick_background(optimal_stats):
             continue
             
     backgrounds = query_backgrounds(skill_ids)
-    if backgrounds:
-        background = random.choice(backgrounds)
-        return background[0]
-    else:
-        return None
+    # if backgrounds:
+    background = random.choice(backgrounds)
+    return background[0]
+    # else:
+    #     return None
     
     
 def generate_background(
@@ -485,6 +485,6 @@ def generate_background(
     # Extract the content from the response
     content = response['choices'][0]['message']['content']
     
-    print(content)
+    # print(content)
     
     return content
