@@ -3,9 +3,8 @@ import gen as g  # Import your character generation code
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": [
-    "http://localhost:4000", "https://simonhansedasi.github.io", "http://127.0.0.1:5000"
-]}})  # Allow specific origins
+CORS(app, resources={r"/*": {"origins": ["http://localhost:4000", "https://simonhansedasi.github.io", "https://char-gen.onrender.com", "http://127.0.0.1:5000/"]}})
+# Allow specific origins
 
 @app.route('/generate_character', methods=['GET', 'POST'])
 def generate_character():
