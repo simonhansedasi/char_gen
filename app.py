@@ -54,7 +54,7 @@ def generate_background():
 
     # Generate background based on character data
     character_background = g.generate_background(species, chosen_class, background, stats, dead_farmers)
-    # character_background = character_background.replace('\n', '<br>')
+    character_background = character_background.replace('\n', '<br>')
 
     return jsonify({'character_background': character_background})
 if __name__ == '__main__':
