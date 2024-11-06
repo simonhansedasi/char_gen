@@ -430,7 +430,6 @@ def query_backgrounds(skill_ids):
 def pick_background(optimal_stats):
 
     preferred_skills = query_skills(optimal_stats)
-    
     skill_ids = []
     for skill in preferred_skills:
         if skill[1] not in skill_ids:
@@ -438,7 +437,6 @@ def pick_background(optimal_stats):
             
         else:
             continue
-            
     backgrounds = query_backgrounds(skill_ids)
     if backgrounds:
         background = random.choice(backgrounds)
@@ -463,7 +461,7 @@ def generate_background(
     # with open('key.txt', 'r') as file:
     #     api_key = file.read().strip()
         
-    openai.api_key = api_key
+    # openai.api_key = api_key
 
     prompt = (
         # f'
