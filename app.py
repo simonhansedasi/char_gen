@@ -27,12 +27,12 @@ def generate_character():
 
     # printed_stats = {new_key: updated_stats[old_key] for new_key, old_key in zip(g.stats, updated_stats.keys())}
     printed_stats = OrderedDict([
-        ("STR", updated_stats["STR"]),
-        ("DEX", updated_stats["DEX"]),
-        ("CON", updated_stats["CON"]),
-        ("INT", updated_stats["INT"]),
-        ("WIS", updated_stats["WIS"]),
-        ("CHA", updated_stats["CHA"])
+        ("STR", updated_stats[0]),
+        ("DEX", updated_stats[1]),
+        ("CON", updated_stats[2]),
+        ("INT", updated_stats[3]),
+        ("WIS", updated_stats[4]),
+        ("CHA", updated_stats[5])
     ])
     # Generate the background text
     character_background = g.generate_background(
