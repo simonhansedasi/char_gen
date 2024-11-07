@@ -57,10 +57,13 @@ def generate_background():
     background = request.json.get('background')
     dead_farmers = request.json.get('dead_farmers')
     
+    attributes = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA']
+
+    ordered_stats = {attributes[i]: stats.get(i) for i in range(len(attributes))}
 
 
     # Generate background based on character data
-    character_background = g.generate_background(species, chosen_class, background, stats, dead_farmers)
+    character_background = g.generate_background(species, chosen_class, background, ordered_stats, dead_farmers)
     character_background = character_background.replace('\n', '<br>')
 
     # Return the character background
