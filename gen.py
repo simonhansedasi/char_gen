@@ -530,12 +530,12 @@ def generate_background(
     load_dotenv()
 
     # Get the API key from environment variables
-    # api_key = os.getenv("OPENAI_API_KEY")
-    # openai.api_key = api_key
-    with open('key.txt', 'r') as file:
-        api_key = file.read().strip()
-        
+    api_key = os.getenv("OPENAI_API_KEY")
     openai.api_key = api_key
+#     with open('key.txt', 'r') as file:
+#         api_key = file.read().strip()
+        
+#     openai.api_key = api_key
 
     prompt = (
         # f'
