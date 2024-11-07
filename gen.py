@@ -4,6 +4,7 @@ import openai
 
 import os
 from dotenv import load_dotenv
+from itertools import product
 
 
 stats = ['STR','DEX','CON','INT','WIS','CHA']
@@ -63,6 +64,40 @@ def sort_stats(stats):
     top_stats = [stat + 1 for stat in top_stats]
 
     return list(zip(top_stats, stat_values))
+
+
+
+def get_stat_combos(top_stats):
+    if len(top_stats) < 2:
+        return None
+
+    # Get the values of the highest and second-highest stats
+    highest_value = top_stats[0][1]
+    second_highest_value = None
+    for stat in top_stats:
+        if stat[1] < highest_value:
+            second_highest_value = stat[1]
+            break
+    
+    # Gather all stat IDs tied for the highest value
+    primary_stats = [stat[0] for stat in top_stats if stat[1] == highest_value]
+    
+    # Gather all stat IDs tied for the second-highest value
+    secondary_stats = [stat[0] for stat in top_stats if stat[1] == second_highest_value] if second_highest_value else []
+
+    # Check if all primary and secondary stats meet the minimum threshold
+    if highest_value < 16 or (second_highest_value and second_highest_value < 12):
+        return None
+
+    # Generate all combinations of primary and secondary stat pairs
+    stat_combinations = list(product(primary_stats, secondary_stats))
+
+#     print(f"Primary Stat IDs: {primary_stats}")
+#     print(f"Secondary Stat IDs: {secondary_stats}")
+#     print(f"Stat Combinations for Querying: {stat_combinations}")
+
+    return stat_combinations
+
 
 
 def get_species_name(species_id):
@@ -299,6 +334,7 @@ def recommend_species(stats):
                 if species_index == 8:
                     species_weights[species_index] += key
 
+                    
     for key in species_weights:
         feat_weights = query_species_feats(key)
         for item in feat_weights:
@@ -340,54 +376,89 @@ def apply_species_bonus(stats, recommended_species):
 
 
 
-def query_class(top_stats):
+def query_class(stat_combinations):
     conn = sqlite3.connect('dnd.db')
     cursor = conn.cursor()
-    stat_ids = [stat_id for stat_id, value in top_stats if value >= 14]
-    if not stat_ids:
-        return []
+    # print(stat_combinations)
+    # Flatten stat combinations into separate lists for each role
+    primary_stats = [comb[0] for comb in stat_combinations]
+    # print(primary_stats)
+    secondary_stats = [comb[1] for comb in stat_combinations]
+    # print(secondary_stats)
 
-    placeholders = ', '.join(['?'] * len(stat_ids))
-    class_query = f'''
-        SELECT C.class_id, C.class_name, CA.stat_id
-        FROM Classes C
-        JOIN ClassAttributes CA ON CA.class_id = C.class_id
-        WHERE CA.stat_id IN ({placeholders})
+    # Format placeholders for SQL IN clause based on the number of stats
+    primary_placeholders = ','.join(['?'] * len(primary_stats))
+    secondary_placeholders = ','.join(['?'] * len(secondary_stats))
+
+    query = f'''
+        SELECT c.class_name 
+        FROM ClassAttributes ca
+        JOIN Classes c ON ca.class_id = c.class_id
+        WHERE (ca.primary_stat_id IN ({primary_placeholders})
+           AND ca.secondary_stat_id IN ({secondary_placeholders}))
     '''
-    
-    cursor.execute(class_query, stat_ids)
+
+    # Combine the lists for parameterized query
+    params = primary_stats + secondary_stats
+
+    cursor.execute(query, params)
     results = cursor.fetchall()
+
     conn.close()
-    
+
+    # Extract class names from results and remove duplicates
     return results
 
 
+
+
+
 def select_class(top_stats):        
-    potential_classes = query_class(top_stats)    
+    # print(top_stats)
+    
+    stat_combos = get_stat_combos(top_stats)
+    # print(stat_combos)
+    if not stat_combos:
+        return None
+    # Get potential classes from query_class
+    potential_classes = query_class(stat_combos) 
+    # print(potential_classes)
+#     
+    
+    
+    
+    if potential_classes is None:
+        return None
+    # Count the frequency of each class
     classes = {}
     for item in potential_classes:
-        class_id = item[0]
-        class_name = item[1]
-        class_stat = item[2] + 1
-        # print(class_name)
-        if class_name not in classes.keys():
+        class_name = item[0]
+        if class_name not in classes:
             classes[class_name] = 1
-        elif class_name in classes.keys():
+        else:
             classes[class_name] += 1
-            
-            
-    classes = {k: v for k, v in classes.items() if v >= 2}
-    pcs = list(classes.keys())
-    weights = list(classes.values())
+    
+    # Filter out classes with count less than 1 (although it shouldn't be needed)
+    classes = {k: v for k, v in classes.items() if v >= 1}
+    # print(classes)
 
-    if pcs:
-        return random.choices(pcs, weights=weights, k=1)[0]
+    # Find the maximum count
+    max_count = max(classes.values(), default=0)
+    
+    # Get all classes that have the maximum count
+    top_classes = [class_name for class_name, count in classes.items() if count == max_count]
+    # print(top_classes)
+
+    # If there is a tie, choose randomly among the tied classes
+    if len(top_classes) > 1:
+        return random.choice(top_classes)
+    elif top_classes:
+        return top_classes[0]  # Return the class with the highest count
     else:
         return None
 
-    
-    
-    
+
+
 def query_skills(optimal_stats):
     conn = sqlite3.connect('dnd.db')
     cursor = conn.cursor()
