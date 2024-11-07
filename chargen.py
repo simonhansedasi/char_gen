@@ -12,7 +12,7 @@ def main():
     
     background = None
 
-    while not (recommended_species and chosen_class and background):
+    while not (recommended_species and background and chosen_class):
         
         stats, attempts = g.roll_stats()
         
@@ -24,14 +24,15 @@ def main():
         updated_stats = g.apply_species_bonus(stats, recommended_species)
         optimal_stats = g.sort_stats(updated_stats)
     
-        chosen_class = g.select_class(optimal_stats)
-    
+        # optimal_stats = g.get_top_stats(updated_stats)
+        # print(optimal_stats)
         background = g.pick_background(optimal_stats)
     
-
     
+        chosen_class = g.select_class(optimal_stats)
+        # print('')
     # print(background)
-    
+        print('')
     printed_stats = {}
     for new_key, old_key in zip(g.stats, updated_stats.keys()):
         printed_stats[new_key] = updated_stats[old_key]
@@ -42,7 +43,7 @@ def main():
     print(recommended_species)
     print(background)
     print(chosen_class)
-    # print(f'{dead_farmers} dead farmers')
+    print(f'{dead_farmers} dead farmers')
     print('')
 
     backstory = g.generate_background(
