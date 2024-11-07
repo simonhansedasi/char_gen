@@ -377,37 +377,35 @@ def apply_species_bonus(stats, recommended_species):
 
 
 def query_class(stat_combinations):
+    if not stat_combinations:
+        return []
+
     conn = sqlite3.connect('dnd.db')
     cursor = conn.cursor()
-    # print(stat_combinations)
-    # Flatten stat combinations into separate lists for each role
-    primary_stats = [comb[0] for comb in stat_combinations]
-    # print(primary_stats)
-    secondary_stats = [comb[1] for comb in stat_combinations]
-    # print(secondary_stats)
 
-    # Format placeholders for SQL IN clause based on the number of stats
+    # Flatten stat combinations for SQL query
+    primary_stats = [combo[0] for combo in stat_combinations]
+    secondary_stats = [combo[1] for combo in stat_combinations]
+
+    # Format placeholders for SQL IN clause
     primary_placeholders = ','.join(['?'] * len(primary_stats))
     secondary_placeholders = ','.join(['?'] * len(secondary_stats))
 
     query = f'''
-        SELECT c.class_name 
+        SELECT DISTINCT c.class_name
         FROM ClassAttributes ca
         JOIN Classes c ON ca.class_id = c.class_id
-        WHERE (ca.primary_stat_id IN ({primary_placeholders})
-           AND ca.secondary_stat_id IN ({secondary_placeholders}))
+        WHERE ca.primary_stat_id IN ({primary_placeholders})
+          AND ca.secondary_stat_id IN ({secondary_placeholders})
     '''
 
-    # Combine the lists for parameterized query
     params = primary_stats + secondary_stats
-
     cursor.execute(query, params)
     results = cursor.fetchall()
-
     conn.close()
 
-    # Extract class names from results and remove duplicates
     return results
+
 
 
 
@@ -450,6 +448,7 @@ def select_class(top_stats):
     # print(top_classes)
 
     # If there is a tie, choose randomly among the tied classes
+    # print(top_classes)
     if len(top_classes) > 1:
         return random.choice(top_classes)
     elif top_classes:
@@ -464,14 +463,14 @@ def query_skills(optimal_stats):
     cursor = conn.cursor()
     
     
-    stat_ids = [stat_id for stat_id, value in optimal_stats if value >= 14]
+    stat_ids = [stat_id for stat_id, value in optimal_stats if value >= 16]
     if not stat_ids:
         return []
 
     placeholders = ', '.join(['?'] * len(stat_ids))
     
     skill_query = f'''
-        SELECT S.skill_id, S.skill_name
+        SELECT S.skill_id, S.skill_name, S.governing_attribute
         FROM Skills S
         WHERE S.governing_attribute in ({placeholders})
     '''
@@ -490,7 +489,7 @@ def query_backgrounds(skill_ids):
     background_query = f'''
         SELECT B.background_name
         FROM Backgrounds B
-        WHERE B.skill_1 AND skill_2 in ({placeholders})
+        WHERE B.skill_1 OR skill_2 in ({placeholders})
     '''
     cursor.execute(background_query,skill_ids)
     results = cursor.fetchall()
@@ -501,6 +500,7 @@ def query_backgrounds(skill_ids):
 def pick_background(optimal_stats):
 
     preferred_skills = query_skills(optimal_stats)
+    # print(preferred_skills)
     skill_ids = []
     for skill in preferred_skills:
         if skill[1] not in skill_ids:
@@ -508,9 +508,12 @@ def pick_background(optimal_stats):
             
         else:
             continue
+    # print(skill_ids)
     backgrounds = query_backgrounds(skill_ids)
+    # print(backgrounds)
     if backgrounds:
         background = random.choice(backgrounds)
+        # print(background)
         return background[0]
     else:
         return None
@@ -527,12 +530,12 @@ def generate_background(
     load_dotenv()
 
     # Get the API key from environment variables
-    api_key = os.getenv("OPENAI_API_KEY")
-    openai.api_key = api_key
-    # with open('key.txt', 'r') as file:
-    #     api_key = file.read().strip()
-        
+    # api_key = os.getenv("OPENAI_API_KEY")
     # openai.api_key = api_key
+    with open('key.txt', 'r') as file:
+        api_key = file.read().strip()
+        
+    openai.api_key = api_key
 
     prompt = (
         # f'
