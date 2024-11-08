@@ -33,6 +33,8 @@ def generate_character():
         optimal_stats = g.sort_stats(updated_stats)
         background = g.pick_background(optimal_stats)
         chosen_class = g.select_class(optimal_stats)
+    
+    alignment = g.determine_alignment(dead_farmers)
 
     partial_response = jsonify({
         'stats': updated_stats,
@@ -40,6 +42,7 @@ def generate_character():
         'class': chosen_class,
         'background': background,  
         'dead_farmers': dead_farmers,
+        'alignment': alignment,
         'backstory': "Generating character backstory...",  
     })
     return partial_response
@@ -56,11 +59,20 @@ def generate_background():
     chosen_class = request.json.get('class')
     background = request.json.get('background')
     dead_farmers = request.json.get('dead_farmers')
+    alignment = request.json.get('alignment')
     
 
 
     # Generate background based on character data
-    character_background = g.generate_background(species, chosen_class, background, stats, dead_farmers)
+    character_background = g.generate_background(
+        species, 
+        chosen_class, 
+        background, 
+        stats,
+        dead_farmers,
+        alignment
+    
+    )
     character_background = character_background.replace('\n', '<br>')
 
     # Return the character background
