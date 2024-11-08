@@ -61,11 +61,9 @@ def generate_background():
     dead_farmers = request.json.get('dead_farmers')
     alignment = request.json.get('alignment')
     
-    attributes = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA']
-
-    ordered_stats = {attributes[i]: stats.get(i) for i in range(len(attributes))}
 
 
+    # Generate background based on character data
     character_background = g.generate_background(
         species, 
         chosen_class, 
@@ -75,10 +73,26 @@ def generate_background():
         alignment
     
     )
+    sections = character_background.split("\n\n")
+    profile = {
+        "Background": "",
+        "Goal": "",
+        "Personality Trait": "",
+        "Quirk": ""
+    }
 
+    for section in sections:
+        if "Background:" in section:
+            profile["Background"] = section.split("Background: ")[1].strip()
+        elif "Goal:" in section:
+            profile["Goal"] = section.split("Goal: ")[1].strip()
+        elif "Personality Trait:" in section:
+            profile["Personality Trait"] = section.split("Personality Trait: ")[1].strip()
+        elif "Quirk:" in section:
+            profile["Quirk"] = section.split("Quirk: ")[1].strip()
 
-    # Return the character background
-    return jsonify({'character_background': character_background})
+    # Return the structured JSON response
+    return jsonify(profile)
 
 
 if __name__ == '__main__':
