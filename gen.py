@@ -519,23 +519,27 @@ def pick_background(optimal_stats):
         return None
     
     
+    
+
+    
 def generate_background(
     recommended_species, 
     chosen_class, 
     background, 
     updated_stats,
-    dead_farmers
+    dead_farmers,
+    alignment
 ):
         # Load environment variables
     load_dotenv()
 
     # Get the API key from environment variables
     api_key = os.getenv("OPENAI_API_KEY")
-    openai.api_key = api_key
+    # openai.api_key = api_key
 #     with open('key.txt', 'r') as file:
 #         api_key = file.read().strip()
         
-#     openai.api_key = api_key
+    openai.api_key = api_key
 
     prompt = (
         f'Generate a detailed D&D character profile for a {chosen_class}. '
@@ -559,3 +563,42 @@ def generate_background(
     # print(content)
     
     return content
+
+
+
+
+def determine_alignment(dead_farmers):
+    
+    alignments = {
+        'Lawful Good': 15,
+        'Neutral Good': 15,
+        'Chaotic Good': 13,
+        'Lawful Neutral': 15,
+        'True Neutral': 12,
+        'Chaotic Neutral': 10,
+        'Lawful Evil': 3,
+        'Neutral Evil': 5,
+        'Chaotic Evil': 2,
+    }
+    for alignment in alignments:
+        
+        if 'Good' in alignment:
+            alignments[alignment] = alignments[alignment] - dead_farmers
+            
+        if 'Neutral' in alignment:
+            alignments[alignment] -= int(dead_farmers / 2)
+            
+        elif 'Evil' in alignment:
+            alignments[alignment] += dead_farmers
+            
+        elif 'Lawful' in alignment:
+            alignments[alignment] -= int(dead_farmers / 2)
+            
+        elif 'Chaotic' in alignment:
+            alignments[alignment] += int(dead_farmers / 2)
+
+
+    choices = list(alignments.keys())
+    weights = list(alignments.values())
+
+    return random.choices(choices, weights = weights, k = 1)[0]
