@@ -544,10 +544,10 @@ def generate_background(
     prompt = (
         f'Generate a detailed D&D character profile for a {chosen_class}. '
         f'Name the character and provide a structured response with the following sections: '
-        f'\n\nBackground: Describe the character's backstory. The character comes from a {background} background. '
+        f'\n\nBackground: Describe the character\'s backstory. The character comes from a {background} background. '
         f'{dead_farmers} people tragically died before this person became an adventurer. '
-        f'Focus on how these events might have shaped the character's life. Avoid directly stating alignment.'
-        f'\n\nGoal: Define the character's main objective or ambition without mentioning their alignment.'
+        f'Focus on how these events might have shaped the character\'s life. Avoid directly stating alignment.'
+        f'\n\nGoal: Define the character\'s main objective or ambition without mentioning their alignment.'
         f'\n\nPersonality Trait: Provide a personality trait that reflects the character’s experiences and their stat array {updated_stats}.'
         f'\n\nQuirk: Give the character a unique quirk or habit that makes them memorable.'
     )
