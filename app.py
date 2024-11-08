@@ -51,48 +51,47 @@ def generate_character():
 
 
 
-# Separate route to generate and fetch the background
 @app.route('/generate_background', methods=['POST'])
 def generate_background():
-    stats = request.json.get('stats')
-    species = request.json.get('species')
-    chosen_class = request.json.get('class')
-    background = request.json.get('background')
-    dead_farmers = request.json.get('dead_farmers')
-    alignment = request.json.get('alignment')
-    
+    try:
+        stats = request.json.get('stats')
+        species = request.json.get('species')
+        chosen_class = request.json.get('class')
+        background = request.json.get('background')
+        dead_farmers = request.json.get('dead_farmers')
+        alignment = request.json.get('alignment')
 
+        # Log the received data
+        print("Received data:", {
+            'species': species,
+            'class': chosen_class,
+            'stats': stats,
+            'dead_farmers': dead_farmers,
+            'background': background,
+            'alignment': alignment
+        })
 
-    # Generate background based on character data
-    character_background = g.generate_background(
-        species, 
-        chosen_class, 
-        background, 
-        stats,
-        dead_farmers,
-        alignment
-    
-    )
-    sections = character_background.split("\n\n")
-    profile = {
-        "Background": "",
-        "Goal": "",
-        "Personality Trait": "",
-        "Quirk": ""
-    }
+        # Validate input data
+        if not all([species, chosen_class, background, stats, alignment]):
+            return jsonify({"error": "Missing required fields"}), 400
 
-    for section in sections:
-        if "Background:" in section:
-            profile["Background"] = section.split("Background: ")[1].strip()
-        elif "Goal:" in section:
-            profile["Goal"] = section.split("Goal: ")[1].strip()
-        elif "Personality Trait:" in section:
-            profile["Personality Trait"] = section.split("Personality Trait: ")[1].strip()
-        elif "Quirk:" in section:
-            profile["Quirk"] = section.split("Quirk: ")[1].strip()
+        # Generate background based on character data
+        character_background = g.generate_background(
+            species,
+            chosen_class,
+            background,
+            stats,
+            dead_farmers,
+            alignment
+        )
+        character_background = character_background.replace('\n', '<br>')
 
-    # Return the structured JSON response
-    return jsonify(profile)
+        return jsonify({'character_background': character_background})
+
+    except Exception as e:
+        print("Error in /generate_background:", str(e))
+        return jsonify({"error": str(e)}), 500
+
 
 
 if __name__ == '__main__':
