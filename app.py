@@ -61,9 +61,11 @@ def generate_background():
     dead_farmers = request.json.get('dead_farmers')
     alignment = request.json.get('alignment')
     
+    attributes = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA']
+
+    ordered_stats = {attributes[i]: stats.get(i) for i in range(len(attributes))}
 
 
-    # Generate background based on character data
     character_background = g.generate_background(
         species, 
         chosen_class, 
@@ -73,7 +75,7 @@ def generate_background():
         alignment
     
     )
-    character_background = character_background.replace('\n', '<br>')
+
 
     # Return the character background
     return jsonify({'character_background': character_background})
