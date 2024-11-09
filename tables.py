@@ -154,7 +154,7 @@ cursor.execute('''
 ''')
 
 start_feats = [
-    (1, 'Darkvision', 7),
+    (1, 'Darkvision', 6),
     (2, 'Superior Darkvision', 8),
     (3, 'Dwarven Resilience', 5),
     (4, 'Dwarven Combat Training', 5),
@@ -180,8 +180,8 @@ start_feats = [
     (24, 'Draconic Ancestry', 5),
     (25, 'Breath Weapon', 5),
     (26, 'Damage Resistance', 5),
-    (27, 'Gnome Cunning', 7),
-    (28, 'Speak With Small Beasts', 3),
+    (27, 'Gnome Cunning', 9),
+    (28, 'Speak With Small Beasts', 5),
     (29, 'Artificer\'s Lore', 5),
     (30, 'Tool Proficiency', 5),
     (31, 'Skill Proficiency + 1', 3),
@@ -190,7 +190,7 @@ start_feats = [
     (34, 'Savage Attacks', 6),
     (35, 'Hellish Resistance', 5),
     (36, 'Infernal Legacy', 7),
-    (37, 'Sunlight Sensitivity', -4)
+    (37, 'Sunlight Sensitivity', -5)
 ]
 
 cursor.executemany('''
