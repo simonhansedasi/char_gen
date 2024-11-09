@@ -4,7 +4,7 @@ import openai
 
 import os
 from dotenv import load_dotenv
-from itertools import product
+from itertools import product, groupby, combinations
 
 
 stats = ['STR','DEX','CON','INT','WIS','CHA']
@@ -40,22 +40,10 @@ def roll_stats():
 
 
 
-def get_stat_combinations(stats):
-    highest_two = sorted(stats.items(), key=lambda x: -x[1])[:2]
-    lowest_two = sorted(stats.items(), key=lambda x: x[1])[:2]
-    highest_lowest = [
-        (highest_two[0][0], highest_two[0][1]), 
-        (lowest_two[0][0], lowest_two[0][1])    
-    ] 
-    return {        
-        'l2': lowest_two,
-        'hl': highest_lowest,
-        'h2': highest_two
-    }
+
 
 def sort_stats(stats):
     top_stats = sorted(stats, key=stats.get, reverse=True)
-    
     stat_values = []
     
     for stat in top_stats:
@@ -65,6 +53,41 @@ def sort_stats(stats):
 
     return list(zip(top_stats, stat_values))
 
+
+
+
+
+def get_stat_combinations(stats):
+    # Sort stats by value in descending and ascending order
+    sorted_stats_desc = sorted(stats.items(), key=lambda x: -x[1])
+    sorted_stats_asc = sorted(stats.items(), key=lambda x: x[1])
+
+    # Find the highest and lowest values
+    highest_value = sorted_stats_desc[0][1]
+    lowest_value = sorted_stats_asc[0][1]
+
+    # Get all stats with the highest and lowest values (to handle ties)
+    highest_stats = [stat for stat, value in stats.items() if value == highest_value]
+    lowest_stats = [stat for stat, value in stats.items() if value == lowest_value]
+
+    # Check if we have enough unique stats for h2
+    if len(highest_stats) < 2:
+        # Fall back to the next highest stats if not enough for a pair
+        next_highest_value = sorted_stats_desc[len(highest_stats)][1]
+        highest_stats += [stat for stat, value in stats.items() if value == next_highest_value]
+
+    # Generate combinations for the highest and lowest stats
+    highest_combinations = list(combinations(set(highest_stats), 2))
+    lowest_combinations = list(combinations(set(lowest_stats), 2)) if len(lowest_stats) > 1 else []
+
+    # Create combinations of one highest and one lowest stat
+    highest_lowest_combinations = [(h, l) for h in highest_stats for l in lowest_stats]
+
+    return {
+        'l2': lowest_combinations,
+        'hl': highest_lowest_combinations,
+        'h2': highest_combinations
+    }
 
 
 def get_stat_combos(top_stats):
@@ -92,13 +115,8 @@ def get_stat_combos(top_stats):
     # Generate all combinations of primary and secondary stat pairs
     stat_combinations = list(product(primary_stats, secondary_stats))
 
-#     print(f"Primary Stat IDs: {primary_stats}")
-#     print(f"Secondary Stat IDs: {secondary_stats}")
-#     print(f"Stat Combinations for Querying: {stat_combinations}")
 
     return stat_combinations
-
-
 
 def get_species_name(species_id):
     conn = sqlite3.connect('dnd.db')
@@ -140,37 +158,43 @@ def get_species_stats(stats, species_id):
     conn = sqlite3.connect('dnd.db')
     cursor = conn.cursor()
     species_bonuses = []
+
+
+    # Handle special cases for Humans (8) and Half-Elves (12)
     if species_id in (8, 12):
-        highest_stats = get_stat_combinations(stats)['h2']
-        
-        
-        # add 1 for sql indexing
-        
-        h1 = highest_stats[0][0] + 1
-        h2 = highest_stats[1][0] + 1
-        
-        
+        # Get the highest two stats, considering ties
+        stat_combinations = get_stat_combinations(stats)
+        highest_stats = stat_combinations['h2']
+
+        # Check for ties in the highest stats
+        tied_stats = [stat for stat in highest_stats if stat[0] in stats and stats[stat[0]] == stats[highest_stats[0][0]]]
+
         if species_id == 8:
-            species_bonuses = [(h1, 1), (h2, 1)]
-        elif species_id == 12 and 6 not in highest_stats:
-            species_bonuses = [(h1, 1), (h2, 1)]
-        elif species_id == 12 and 6 in highest_stats:
-            next_highest_stats = get_stat_combinations(stats)['hl']
-            h1 = next_highest_stats[0][0]
-            h2 = next_highest_stats[1][0]
-            species_bonuses = [(h1, 1), (h2, 1)]
-            
-        elif species_id == 12 and 6 in highest_stats:
-            next_highest_stats = get_stat_combinations(stats)['l2']
-            h1 = next_highest_stats[0][0]
-            h2 = next_highest_stats[1][0]
+            # For Humans: apply bonuses to two highest stats (considering ties)
+            if len(tied_stats) >= 2:
+                h1, h2 = tied_stats[0][0] + 1, tied_stats[1][0] + 1
+            else:
+                h1 = highest_stats[0][0] + 1
+                h2 = highest_stats[0][1] + 1
             species_bonuses = [(h1, 1), (h2, 1)]
 
-
-            
-            
-    if species_id != 8:
+        elif species_id == 12:
+            # For Half-Elves: similar handling, with an additional check for charisma (stat_id 6)
+            if 6 not in [stat[0] for stat in highest_stats]:
+                if len(tied_stats) >= 2:
+                    h1, h2 = tied_stats[0][0] + 1, tied_stats[1][0] + 1
+                else:
+                    h1 = highest_stats[0][0] + 1
+                    h2 = highest_stats[0][1] + 1
+                species_bonuses = [(h1, 1), (h2, 1)]
+            else:
+                # If charisma is in the highest stats, use the next highest stats
+                next_highest_stats = get_stat_combinations(stats)['hl']
+                h1, h2 = next_highest_stats[0][0] + 1, next_highest_stats[1][0] + 1
+                species_bonuses = [(h1, 1), (h2, 1)]
     
+    # Handle all other species
+    if species_id != 8:
         species_bonus_query = '''
             SELECT SB.stat_id, SB.bonus_value
             FROM SpeciesBonus SB
@@ -178,99 +202,114 @@ def get_species_stats(stats, species_id):
         '''
         cursor.execute(species_bonus_query, (species_id,))
         species_bonuses.extend(cursor.fetchall())
-        
+    
     conn.close()
-    
-    
-    
     
     return species_bonuses
 
 
 
 
-def query_species(stat_id_pairs):
+
+def query_species(stat_id_pairs_list):
     conn = sqlite3.connect('dnd.db')
     cursor = conn.cursor()
 
     union_queries = []
     params = []
-    for n, stat_id in enumerate(stat_id_pairs):
 
-        stat_id_1 = stat_id[0] + 1
-        stat_id_2 = stat_id[1] + 1
+    # Loop through each sublist in the list of stat_id_pairs
+    for sublist_index, stat_id_pairs in enumerate(stat_id_pairs_list):
+        for n, stat_id in enumerate(stat_id_pairs):
+            stat_id_1, stat_id_2 = stat_id  # Unpack the tuple into stat_id_1 and stat_id_2
+            stat_id_1 += 1  # Increment stat_id_1 (adjusting for your system's indexing)
+            stat_id_2 += 1
 
-        union_queries.append(f'''
-            SELECT S.id, S.name, {n} as pair_index
-            FROM Species S
-            JOIN SpeciesBonus SB ON S.id = SB.species_id
-            WHERE SB.stat_id IN (?, ?)
-            GROUP BY S.id
-            HAVING COUNT(DISTINCT SB.stat_id) = 2
-        ''')
-        
-        # Add parameters for the current pair
-        params.extend([stat_id_1, stat_id_2])
+            # Build the query for each stat pair in the current sublist
+            union_queries.append(f'''
+                SELECT S.id, S.name, {sublist_index} as sublist_index, {n} as pair_index
+                FROM Species S
+                JOIN SpeciesBonus SB ON S.id = SB.species_id
+                JOIN SpeciesBonus SB1 ON S.id = SB1.species_id AND SB1.stat_id = ?
+                JOIN SpeciesBonus SB2 ON S.id = SB2.species_id AND SB2.stat_id = ?
+                GROUP BY S.id                
+            ''')
 
+            # Add the parameters for the current stat pair
+            params.extend([stat_id_1, stat_id_2])
+
+    # Combine all the individual queries using UNION ALL
     complete_query = ' UNION ALL '.join(union_queries)
 
+    # Execute the final query with all the parameters
     cursor.execute(complete_query, params)
     results = cursor.fetchall()
+    # Organize the results into a dictionary by sublist_index and pair_index
+    species_dict = {}
 
-    species_dict = {i: [] for i in range(len(stat_id_pairs))}
+    for species_id, species_name, sublist_index, pair_index in results:
+        if sublist_index not in species_dict:
+            species_dict[sublist_index] = {}
+        if pair_index not in species_dict[sublist_index]:
+            species_dict[sublist_index][pair_index] = []
+        species_dict[sublist_index][pair_index].append((species_id, species_name))
 
-    for species_id, species_name, pair_index in results:
-        species_dict[pair_index].append(species_id)
     conn.close()
+
     return species_dict
 
 
-def find_key_by_value(my_dict, target_value):
-    for key, value in my_dict.items():
-        if value == target_value:
-            return key
-    return None
 
 
-
-
-def query_flexible_species(stat_id_pairs):
+def query_flexible_species(stat_id_pairs_list):
     conn = sqlite3.connect('dnd.db')
     cursor = conn.cursor()
 
     union_queries = []
     params = []
-    for n, stat_id in enumerate(stat_id_pairs):
 
-        stat_id_1 = stat_id[0] + 1
-        stat_id_2 = stat_id[1] + 1
+    # Loop through each sublist in the list of stat_id_pairs
+    for sublist_index, stat_id_pairs in enumerate(stat_id_pairs_list):
+        for n, stat_id in enumerate(stat_id_pairs):
+            stat_id_1, stat_id_2 = stat_id  # Unpack the tuple into stat_id_1 and stat_id_2
+            stat_id_1 += 1  # Increment stat_id_1 (adjusting for your system's indexing)
+            stat_id_2 += 1
 
-        union_queries.append(f'''
-            SELECT S.id, {n} as pair_index
-            FROM Species S
-            JOIN Custom_Bonuses CB ON S.id = CB.species_id
-            WHERE (CB.first_stat_id = ? AND CB.second_stat_id = ?) 
-                OR (CB.first_stat_id = ? AND CB.second_stat_id = ?)          
-            GROUP BY S.id
-        ''')
-        
-        # Add parameters for the current pair
-        params.extend([stat_id_1, stat_id_2, stat_id_2, stat_id_1])
-    
+            # Exclude Half-Elves (ID 12) if one of the stats is Charisma (ID 6)
+            exclude_halfelf = "AND S.id != 12" if 6 in [stat_id_1, stat_id_2] else ""
+
+            # Create the query for the current stat pair
+            union_queries.append(f'''
+                SELECT S.id, S.name, {sublist_index} as sublist_index, {n} as pair_index
+                FROM Species S
+                JOIN Custom_Bonuses CB ON S.id = CB.species_id
+                WHERE ((CB.first_stat_id = ? AND CB.second_stat_id = ?)
+                    OR (CB.first_stat_id = ? AND CB.second_stat_id = ?))
+                    {exclude_halfelf}
+                GROUP BY S.id
+            ''')
+
+            # Add parameters for the current stat pair
+            params.extend([stat_id_1, stat_id_2, stat_id_2, stat_id_1])
+
+    # Combine all queries into one with UNION ALL
     complete_query = ' UNION ALL '.join(union_queries)
 
+    # Execute the complete query with all parameters
     cursor.execute(complete_query, params)
     results = cursor.fetchall()
-    
-    species_dict = {i: [] for i in range(len(stat_id_pairs))}
-    
-    for species_id, pair_index in results:
-        species_dict[pair_index].append(species_id)
+    # Organize the results into a dictionary by sublist_index and pair_index
+    species_dict = {}
+    for species_id, species_name, sublist_index, pair_index in results:
+        if sublist_index not in species_dict:
+            species_dict[sublist_index] = {}
+        if pair_index not in species_dict[sublist_index]:
+            species_dict[sublist_index][pair_index] = []
+        species_dict[sublist_index][pair_index].append((species_id, species_name))
+
     conn.close()
+    
     return species_dict
-
-
-
 
 
 
@@ -305,53 +344,81 @@ def recommend_species(stats):
     
     stat_ids = []
     
+    
+    stat_ids = []
     for key, value in stat_combos.items():
-        stat_ids.append([value[0][0], value[1][0]])
-        
+        stat_ids.append(value)
+
+    
     species = query_species(stat_ids)
     flex_species = query_flexible_species(stat_ids)
 
     
+
+    
+    
     all_species = {}
-    max_length = max(len(species), len(flex_species))
 
-    # Merge the two dictionaries
-    for i in range(max_length):
-        all_species[i] = []
+    # Get the maximum sublist index from both dictionaries
+    max_index = max(max(species.keys(), default=-1), max(flex_species.keys(), default=-1))
+
+    # Iterate through all possible sublist indices
+    for i in range(max_index + 1):
+        all_species[i] = {}
+
+        # Merge entries from `species` dictionary
         if i in species:
-            all_species[i].extend(species[i])
+            for pair_index, species_list in species[i].items():
+                if pair_index not in all_species[i]:
+                    all_species[i][pair_index] = set()
+                # Add species entries as a set to avoid duplicates
+                all_species[i][pair_index].update(species_list)
+
+        # Merge entries from `flex_species` dictionary
         if i in flex_species:
-            all_species[i].extend(flex_species[i])
+            for pair_index, species_list in flex_species[i].items():
+                if pair_index not in all_species[i]:
+                    all_species[i][pair_index] = set()
+                # Add species entries as a set to avoid duplicates
+                all_species[i][pair_index].update(species_list)
 
-    
-    
-    species_weights = {}
-    for key in all_species.keys():
-        for species_index in all_species[key]:
-            if species_index not in species_weights:
-                species_weights[species_index] = key
-            else:
-                if species_index == 8:
-                    species_weights[species_index] += key
+        # Convert sets back to lists for the final result
+        for pair_index in all_species[i]:
+            all_species[i][pair_index] = list(all_species[i][pair_index])
+            
+        
+        
+        species_weights = {}
+                # Calculate base weights from `all_species`
+        for sublist_index, pairs in all_species.items():
+            for pair_index, species_list in pairs.items():
+                for species_id, species_name in species_list:
+                    if species_id not in species_weights:
+                        species_weights[species_id] = 0
+                    # Increment the weight by the sublist index (you can adjust this logic if needed)
+                    species_weights[species_id] += sublist_index
 
-                    
-    for key in species_weights:
-        feat_weights = query_species_feats(key)
-        for item in feat_weights:
-            species_weights[key] += item[3]
-    # print(all_species)
-
+        
+        for species_id in list(species_weights.keys()):
+            feat_weights = query_species_feats(species_id)
+            for item in feat_weights:
+                species_weights[species_id] += item[3]
+                
+                
     species = list(species_weights.keys())
     weights = list(species_weights.values())
 
+    # Choose a species based on the calculated weights
     chosen_species = random.choices(species, weights=weights, k=1)[0]
 
-
+    # Get the name of the chosen species
     recommended_species = get_species_name(chosen_species)
-    
-    
     return recommended_species
-
+                
+                
+                
+                
+                
 
 
 
@@ -382,7 +449,6 @@ def query_class(stat_combinations):
 
     conn = sqlite3.connect('dnd.db')
     cursor = conn.cursor()
-
     # Flatten stat combinations for SQL query
     primary_stats = [combo[0] for combo in stat_combinations]
     secondary_stats = [combo[1] for combo in stat_combinations]
@@ -411,16 +477,12 @@ def query_class(stat_combinations):
 
 
 
-def select_class(top_stats):        
-    # print(top_stats)
-    
-    stat_combos = get_stat_combos(top_stats)
-    # print(stat_combos)
+def select_class(sorted_stats):        
+    stat_combos = get_stat_combos(sorted_stats)
     if not stat_combos:
         return None
     # Get potential classes from query_class
     potential_classes = query_class(stat_combos) 
-    # print(potential_classes)
 #     
     
     
@@ -438,17 +500,14 @@ def select_class(top_stats):
     
     # Filter out classes with count less than 1 (although it shouldn't be needed)
     classes = {k: v for k, v in classes.items() if v >= 1}
-    # print(classes)
 
     # Find the maximum count
     max_count = max(classes.values(), default=0)
     
     # Get all classes that have the maximum count
     top_classes = [class_name for class_name, count in classes.items() if count == max_count]
-    # print(top_classes)
 
     # If there is a tie, choose randomly among the tied classes
-    # print(top_classes)
     if len(top_classes) > 1:
         return random.choice(top_classes)
     elif top_classes:
@@ -500,7 +559,6 @@ def query_backgrounds(skill_ids):
 def pick_background(optimal_stats):
 
     preferred_skills = query_skills(optimal_stats)
-    # print(preferred_skills)
     skill_ids = []
     for skill in preferred_skills:
         if skill[1] not in skill_ids:
@@ -508,12 +566,9 @@ def pick_background(optimal_stats):
             
         else:
             continue
-    # print(skill_ids)
     backgrounds = query_backgrounds(skill_ids)
-    # print(backgrounds)
     if backgrounds:
         background = random.choice(backgrounds)
-        # print(background)
         return background[0]
     else:
         return None
@@ -556,11 +611,9 @@ def generate_background(
         model='gpt-3.5-turbo',
         messages=[{'role': 'user', 'content': prompt}]
     )
-    # print(response)
     # Extract the content from the response
     content = response['choices'][0]['message']['content']
     
-    # print(content)
     
     return content
 
@@ -570,15 +623,15 @@ def generate_background(
 def determine_alignment(dead_farmers):
     
     alignments = {
-        'Lawful Good': 15,
-        'Neutral Good': 15,
-        'Chaotic Good': 13,
-        'Lawful Neutral': 15,
-        'True Neutral': 12,
-        'Chaotic Neutral': 10,
+        'Lawful Good': 17,
+        'Neutral Good': 22,
+        'Chaotic Good': 16,
+        'Lawful Neutral': 19,
+        'True Neutral': 9,
+        'Chaotic Neutral': 12,
         'Lawful Evil': 3,
-        'Neutral Evil': 5,
-        'Chaotic Evil': 2,
+        'Neutral Evil': 7,
+        'Chaotic Evil': 1,
     }
     for alignment in alignments:
         
