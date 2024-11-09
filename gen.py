@@ -25,18 +25,24 @@ def roll_3d6():
 
 def roll_stats():
     rolled_stats = {}
-    
     roll_count = 0
-    
+
     while True:
-    
+        # Roll stats for 6 abilities
         for i in range(6):
             rolled_stats[i] = roll_3d6()
 
-        if any(value >= 16 for value in rolled_stats.values()):
+        # Calculate the average of the rolled stats
+        average_stat = sum(rolled_stats.values()) / len(rolled_stats)
+
+        # Check if the average is at least 12 and if there is any stat >= 16
+        if average_stat >= 12 and any(value >= 16 for value in rolled_stats.values()):
             break
+
         roll_count += 1
+
     return rolled_stats, roll_count
+
 
 
 
@@ -394,10 +400,15 @@ def recommend_species(stats):
             for pair_index, species_list in pairs.items():
                 for species_id, species_name in species_list:
                     if species_id not in species_weights:
-                        species_weights[species_id] = 0
+                        species_weights[species_id] = sublist_index
+                        
+                    if species_id not in (8, 12):
                     # Increment the weight by the sublist index (you can adjust this logic if needed)
-                    species_weights[species_id] += sublist_index
-
+                        species_weights[species_id] += sublist_index
+                    # if species_id in (8, 12):
+                    #     species_weights[species_id] -= sublist_index
+                    # if species_id == 12:
+                    #     species_weights[species_id] -= sublist_index * 2
         
         for species_id in list(species_weights.keys()):
             feat_weights = query_species_feats(species_id)
@@ -623,14 +634,14 @@ def generate_background(
 def determine_alignment(dead_farmers):
     
     alignments = {
-        'Lawful Good': 17,
-        'Neutral Good': 22,
-        'Chaotic Good': 16,
-        'Lawful Neutral': 19,
-        'True Neutral': 9,
-        'Chaotic Neutral': 12,
+        'Lawful Good': 100,
+        'Neutral Good': 90,
+        'Chaotic Good': 80,
+        'Lawful Neutral': 70,
+        'True Neutral': 40,
+        'Chaotic Neutral': 55,
         'Lawful Evil': 3,
-        'Neutral Evil': 7,
+        'Neutral Evil': 5,
         'Chaotic Evil': 1,
     }
     for alignment in alignments:
@@ -638,8 +649,8 @@ def determine_alignment(dead_farmers):
         if 'Good' in alignment:
             alignments[alignment] = alignments[alignment] - dead_farmers
             
-        if 'Neutral' in alignment:
-            alignments[alignment] -= int(dead_farmers / 2)
+        # if 'Neutral' in alignment:
+        #     alignments[alignment] -= int(dead_farmers / 2)
             
         elif 'Evil' in alignment:
             alignments[alignment] += dead_farmers
