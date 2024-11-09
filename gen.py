@@ -608,7 +608,7 @@ def generate_background(
     openai.api_key = api_key
 
     prompt = (
-        f'Generate a detailed D&D character profile for a {chosen_class}. '
+        f'Generate a detailed D&D character profile for a {alignment} {recommended_species} {chosen_class}. '
         f'Name the character and provide a structured response with the following sections: '
         f'\n\nBackground: Describe the character\'s backstory. The character comes from a {background} background. '
         f'{dead_farmers} people tragically died before this person became an adventurer. '
