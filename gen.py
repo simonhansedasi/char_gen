@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from itertools import product, groupby, combinations
 
 
+
 stats = ['STR','DEX','CON','INT','WIS','CHA']
 
 
@@ -14,9 +15,14 @@ priority_order = {'DEX': 1, 'INT': 2, 'WIS': 3, 'STR': 4, 'CHA': 5, 'CON': 6}
 
 
 
+
+
+
+
+
 def roll_3d6():
     rolls = []
-    for i in range(3):
+    for i in range(4):
         rolls.append(random.randint(1,6))
     
     rolls.sort()        
@@ -228,7 +234,7 @@ def query_species(stat_id_pairs_list):
     for sublist_index, stat_id_pairs in enumerate(stat_id_pairs_list):
         for n, stat_id in enumerate(stat_id_pairs):
             stat_id_1, stat_id_2 = stat_id  # Unpack the tuple into stat_id_1 and stat_id_2
-            stat_id_1 += 1  # Increment stat_id_1 (adjusting for your system's indexing)
+            stat_id_1 += 1  
             stat_id_2 += 1
 
             # Build the query for each stat pair in the current sublist
@@ -640,17 +646,17 @@ def determine_alignment(dead_farmers):
         'Lawful Neutral': 70,
         'True Neutral': 40,
         'Chaotic Neutral': 55,
-        'Lawful Evil': 3,
-        'Neutral Evil': 5,
-        'Chaotic Evil': 1,
+        'Lawful Evil': 14,
+        'Neutral Evil': 15,
+        'Chaotic Evil': 13,
     }
     for alignment in alignments:
         
         if 'Good' in alignment:
             alignments[alignment] = alignments[alignment] - dead_farmers
             
-        # if 'Neutral' in alignment:
-        #     alignments[alignment] -= int(dead_farmers / 2)
+        if 'Neutral' in alignment:
+            alignments[alignment] -= int(dead_farmers / 3)
             
         elif 'Evil' in alignment:
             alignments[alignment] += dead_farmers
@@ -666,3 +672,19 @@ def determine_alignment(dead_farmers):
     weights = list(alignments.values())
 
     return random.choices(choices, weights = weights, k = 1)[0]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

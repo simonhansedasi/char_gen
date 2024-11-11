@@ -42,13 +42,14 @@ species = [
     (5, 'Elf (Drow)'),
     (6, 'Halfling (Lightfoot)'),
     (7, 'Halfling (Stout)'),
-    (8, 'Human'),
+    (8, 'Human Variant'),
     (9, 'Dragonborn'),
     (10, 'Gnome (Forest)'),
     (11, 'Gnome (Rock)'),
     (12, 'Half-Elf'),
     (13, 'Half-Orc'),
-    (14, 'Tiefling')
+    (14, 'Tiefling'),
+    (15, 'Human')
 ]
 
 cursor.executemany('''
@@ -96,7 +97,13 @@ species_bonuses = [
     (13, 1, 2),
     (13, 3, 1),
     (14, 4, 1),
-    (14, 6, 2)
+    (14, 6, 2),
+    (15, 1, 1),
+    (15, 2, 1),
+    (15, 3, 1),
+    (15, 4, 1),
+    (15, 5, 1),
+    (15, 6, 1)
 ]
 
 cursor.executemany('''
@@ -280,7 +287,8 @@ species_feats = [
     (13, 34),
     (14, 1),
     (14, 35),
-    (14, 36)
+    (14, 36),
+    (15, 14)
 ]
 
 # Insert species feats into the table
@@ -477,6 +485,28 @@ cursor.executemany('''
     INSERT INTO Backgrounds (background_id, background_name, skill_1, skill_2) 
     VALUES (?, ?, ?, ?)
 ''', backgrounds)
+
+
+
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS Proficiencies (
+        pfc_id INTEGER PRIMARY KEY,
+        pfc_name STRING
+    )
+''')
+
+
+proficiencies = [
+    (1, 'Saving Throw'),
+    (2, 'Skill'),
+    (3, 'Simple Weapons'),
+    (4, 'Martial Weapons'),
+    (5, 'Light Armor'),
+    (6, 'Medium Armor'),
+    (7, 'Heavy Armor'),
+    (8, 'Shields')
+]
+
 
 
 
