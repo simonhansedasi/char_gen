@@ -323,7 +323,7 @@ classes = [
     (10, 'Warlock'),
     (11, 'Wizard'),
     (12, 'Ranger'),
-    (13, 'Artificer')
+    # (13, 'Artificer')
 ]
 
 cursor.executemany('''
@@ -395,8 +395,8 @@ class_abilities = [
     (12, 2, 5),
     (12, 1, 5),
     # (12, 1, 5),
-    (13, 4, 3),
-    (13, 4, 1)
+    # (13, 4, 3),
+    # (13, 4, 1)
 ]
 
 # Insert data into the table
