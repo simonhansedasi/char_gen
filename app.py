@@ -1,10 +1,10 @@
 from flask import Flask, render_template, request, jsonify
 import gen as g  # Import your character generation code
 from flask_cors import CORS
-from collections import OrderedDict
+# from collections import OrderedDict
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": ["http://localhost:4000", "https://simonhansedasi.github.io", "https://char-gen.onrender.com", "http://127.0.0.1:5000"]}})
+CORS(app, resources={r"/*": {"origins": ["http://localhost:4000", "https://simonhansedasi.github.io", "http://127.0.0.1:5001","https://6f78-73-83-144-18.ngrok-free.app"]}})
 # Allow specific origins
 @app.after_request
 def add_security_headers(response):
@@ -15,6 +15,9 @@ def add_security_headers(response):
     response.headers['X-XSS-Protection'] = '1; mode=block'  # Prevent cross-site scripting
     response.headers['X-Content-Type-Options'] = 'nosniff'  # Prevent MIME-type sniffing
     return response
+@app.before_request
+def log_request_info():
+    app.logger.info(f"Request to {request.path} from {request.remote_addr}")
 
 
 @app.route('/generate_character', methods=['POST'])
@@ -95,7 +98,7 @@ def generate_background():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run( port = 5000)
 
     
     
