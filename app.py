@@ -4,7 +4,7 @@ from flask_cors import CORS
 # from collections import OrderedDict
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": ["http://localhost:4000", "https://simonhansedasi.github.io", "http://127.0.0.1:5001","https://6f78-73-83-144-18.ngrok-free.app"]}})
+CORS(app, resources={r"/*": {"origins": ["http://localhost:4000", "https://simonhansedasi.github.io", "http://127.0.0.1:5001","https://2b80aa170c1a.ngrok.app"]}})
 # Allow specific origins
 @app.after_request
 def add_security_headers(response):
