@@ -4,28 +4,17 @@ from flask_cors import CORS
 # from collections import OrderedDict
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": ["http://localhost:4000", "https://simonhansedasi.github.io", "http://127.0.0.1:5001","https://2b80aa170c1a.ngrok.app"]}})
-# Allow specific origins
-@app.after_request
-def add_security_headers(response):
-    response.headers['Permissions-Policy'] = 'interest-cohort=()'  # Disable FLoC
-    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'  # Enforce HTTPS
-    response.headers['Content-Security-Policy'] = "default-src 'self';"  # Add CSP
-    response.headers['X-Frame-Options'] = 'DENY'  # Prevent iframe embedding
-    response.headers['X-XSS-Protection'] = '1; mode=block'  # Prevent cross-site scripting
-    response.headers['X-Content-Type-Options'] = 'nosniff'  # Prevent MIME-type sniffing
-    return response
-@app.before_request
-def log_request_info():
-    app.logger.info(f"Request to {request.path} from {request.remote_addr}")
-
+CORS(app, resources={r"/*": {"origins": ["http://localhost:4000", "https://simonhansedasi.github.io", "http://127.0.0.1:4000","https://872092e651ff.ngrok.app"]}})
 
 @app.route('/generate_character', methods=['POST'])
 def generate_character():
+
+    print('poop')
     background = None
     species = None
     chosen_class = None
     dead_farmers = 0
+    print(dead_farmers)
 
     # Main character generation loop
     while not (species and chosen_class and background):
@@ -63,7 +52,6 @@ def generate_background():
         background = request.json.get('background')
         dead_farmers = request.json.get('dead_farmers')
         alignment = request.json.get('alignment')
-
         # Log the received data
         print("Received data:", {
             'species': species,
@@ -98,7 +86,7 @@ def generate_background():
 
 
 if __name__ == '__main__':
-    app.run( port = 5000)
+    app.run( port = 5000, debug = True)
 
     
     
