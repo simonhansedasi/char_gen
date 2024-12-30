@@ -1,16 +1,34 @@
 // Define the desired order for stats
 const statOrder = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
 
+let baseUrl = '';
+
+// Function to fetch the base URL from the config.txt file
+async function fetchBaseUrl() {
+    try {
+        const response = await fetch('config.txt');
+        if (!response.ok) {
+            throw new Error('Failed to fetch config.txt');
+        }
+        const url = await response.text();
+        baseUrl = url.trim();
+        console.log("Base URL fetched:", baseUrl);
+    } catch (error) {
+        console.error('Error fetching base URL:', error);
+        alert('Failed to fetch base URL. Please contact support.');
+    }
+}
+
 // Custom function to handle fetch with a timeout
 async function fetchWithTimeout(resource, options = {}) {
-        console.log("Starting fetchWithTimeout...");
+    console.log("Starting fetchWithTimeout...");
 
     const { timeout = 1000 } = options;
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
 
     try {
-                console.log("Sending request to:", resource);
+        console.log("Sending request to:", resource);
 
         const response = await fetch(resource, {
             ...options,
@@ -23,10 +41,8 @@ async function fetchWithTimeout(resource, options = {}) {
 
         return await response.json();
     } catch (error) {
-
-        console.error(`Fetch error: ${error.message}`)
-                            console.log('oopsy uh oh')
-
+        console.error(`Fetch error: ${error.message}`);
+        console.log('oopsy uh oh');
         throw error;
     }
 }
@@ -35,18 +51,20 @@ async function fetchWithTimeout(resource, options = {}) {
 async function loadCharacter() {
     const characterContainer = document.getElementById("character-container");
     characterContainer.innerHTML = "Generating character...";
-    console.log('starting up')
+    console.log('starting up');
+
     try {
+        // Ensure baseUrl is fetched first
+        await fetchBaseUrl();
+
         console.log("Starting character generation...");
 
         // Fetch main character data without background
-        const characterData = await fetchWithTimeout("https://872092e651ff.ngrok.app/generate_character", {
+        const characterData = await fetchWithTimeout(`${baseUrl}/generate_character`, {
             method: 'POST',
-            // mode:'no-cors',
-            headers: { 'Content-Type': 'application/json' }
-            // timeout: 1000
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ /* your request payload */ })
         });
-    body: JSON.stringify({ /* your request payload */ })
 
         // Log and validate character data
         console.log("Character data response:", characterData);
@@ -85,7 +103,7 @@ async function loadCharacter() {
         });
 
         // Fetch background data including alignment
-        const backgroundData = await fetchWithTimeout("https://872092e651ff.ngrok.app/generate_background", {
+        const backgroundData = await fetchWithTimeout(`${baseUrl}/generate_background`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
