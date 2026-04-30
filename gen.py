@@ -3,7 +3,7 @@ import sqlite3
 import openai
 
 import os
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 from itertools import product, groupby, combinations
 
 
@@ -557,17 +557,19 @@ def query_skills(optimal_stats):
     
 
 def query_backgrounds(skill_ids):
+    if not skill_ids:
+        return []
     conn = sqlite3.connect('dnd.db')
     cursor = conn.cursor()
-    
+
     placeholders = ', '.join(['?'] * len(skill_ids))
-    
+
     background_query = f'''
         SELECT B.background_name
         FROM Backgrounds B
-        WHERE B.skill_1 OR skill_2 in ({placeholders})
+        WHERE B.skill_1 IN ({placeholders}) OR B.skill_2 IN ({placeholders})
     '''
-    cursor.execute(background_query,skill_ids)
+    cursor.execute(background_query, skill_ids + skill_ids)
     results = cursor.fetchall()
     conn.close()
     return results
@@ -594,45 +596,45 @@ def pick_background(optimal_stats):
     
 
     
-def generate_background(
-    recommended_species, 
-    chosen_class, 
-    background, 
-    updated_stats,
-    dead_farmers,
-    alignment
-):
-        # Load environment variables
-    load_dotenv()
+# def generate_background(
+#     recommended_species, 
+#     chosen_class, 
+#     background, 
+#     updated_stats,
+#     dead_farmers,
+#     alignment
+# ):
+#         # Load environment variables
+#     load_dotenv()
 
-    # Get the API key from environment variables
-    # api_key = os.getenv("OPENAI_API_KEY")
-    # openai.api_key = api_key
-    with open('key.txt', 'r') as file:
-        api_key = file.read().strip()
+#     # Get the API key from environment variables
+#     # api_key = os.getenv("OPENAI_API_KEY")
+#     # openai.api_key = api_key
+#     with open('key.txt', 'r') as file:
+#         api_key = file.read().strip()
         
-    openai.api_key = api_key
+#     openai.api_key = api_key
 
-    prompt = (
-        f'Generate a detailed D&D character profile for a {alignment} {recommended_species} {chosen_class}. '
-        f'Name the character and provide a structured response with the following sections: '
-        f'\n\nBackground: Describe the character\'s backstory. The character comes from a {background} background. '
-        f'{dead_farmers} people tragically died before this person became an adventurer. '
-        f'Focus on how these events might have shaped the character\'s life. Avoid directly stating alignment.'
-        f'\n\nGoal: Define the character\'s main objective or ambition without mentioning their alignment.'
-        f'\n\nPersonality Trait: Provide a personality trait that reflects the character’s experiences and their stat array {updated_stats}.'
-        f'\n\nQuirk: Give the character a unique quirk or habit that makes them memorable.'
-    )
+#     prompt = (
+#         f'Generate a detailed D&D character profile for a {alignment} {recommended_species} {chosen_class}. '
+#         f'Name the character and provide a structured response with the following sections: '
+#         f'\n\nBackground: Describe the character\'s backstory. The character comes from a {background} background. '
+#         f'{dead_farmers} people tragically died before this person became an adventurer. '
+#         f'Focus on how these events might have shaped the character\'s life. Avoid directly stating alignment.'
+#         f'\n\nGoal: Define the character\'s main objective or ambition without mentioning their alignment.'
+#         f'\n\nPersonality Trait: Provide a personality trait that reflects the character’s experiences and their stat array {updated_stats}.'
+#         f'\n\nQuirk: Give the character a unique quirk or habit that makes them memorable.'
+#     )
     
-    response = openai.ChatCompletion.create(
-        model='gpt-3.5-turbo',
-        messages=[{'role': 'user', 'content': prompt}]
-    )
-    # Extract the content from the response
-    content = response['choices'][0]['message']['content']
+#     response = openai.ChatCompletion.create(
+#         model='gpt-3.5-turbo',
+#         messages=[{'role': 'user', 'content': prompt}]
+#     )
+#     # Extract the content from the response
+#     content = response['choices'][0]['message']['content']
     
     
-    return content
+#     return content
 
 
 
@@ -651,27 +653,27 @@ def determine_alignment(dead_farmers):
         'Chaotic Evil': 13,
     }
     for alignment in alignments:
-        
+
         if 'Good' in alignment:
-            alignments[alignment] = alignments[alignment] - dead_farmers
-            
-        if 'Neutral' in alignment:
-            alignments[alignment] -= int(dead_farmers / 3)
-            
-        elif 'Evil' in alignment:
+            alignments[alignment] -= dead_farmers
+
+        if 'Evil' in alignment:
             alignments[alignment] += dead_farmers
-            
-        elif 'Lawful' in alignment:
+
+        if 'Lawful' in alignment:
             alignments[alignment] -= int(dead_farmers / 2)
-            
-        elif 'Chaotic' in alignment:
+
+        if 'Chaotic' in alignment:
             alignments[alignment] += int(dead_farmers / 2)
+
+        if 'Neutral' in alignment:
+            alignments[alignment] -= int(dead_farmers * 0.3)
 
 
     choices = list(alignments.keys())
-    weights = list(alignments.values())
+    weights = [max(1, w) for w in alignments.values()]
 
-    return random.choices(choices, weights = weights, k = 1)[0]
+    return random.choices(choices, weights=weights, k=1)[0]
 
 
 
