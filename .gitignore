@@ -37,3 +37,5 @@ why-physics-works-notes.md
 .ipynb_checkpoints/
 __pycache__/
 *.pyc
+
+dnd.db
