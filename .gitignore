@@ -39,3 +39,14 @@ __pycache__/
 *.pyc
 
 dnd.db
+
+# Paper material and results, local + Pi only
+2024_plan.md
+SUBMISSION_INSTRUCTIONS.md
+suggestions.md
+author_biography.docx
+main.docx
+title_page.docx
+main.tex
+references.bib
+*.pkl
